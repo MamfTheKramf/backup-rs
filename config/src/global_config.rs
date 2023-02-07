@@ -9,10 +9,9 @@ use std::{
 
 /// Class containing general configuration.
 /// Can read general configuration from a given file and store it in a given file.
-/// 
-/// `profile_configs` specify the path to the directory in which the `.json` files for the profiles can be found.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GeneralConfig {
+    /// Specifies the path to the directory in which the `.json` files for the profiles can be found.
     pub profile_configs: PathBuf,
 }
 

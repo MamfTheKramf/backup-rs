@@ -8,21 +8,19 @@ use uuid::Uuid;
 type IntervalType = u32;
 
 /// Struct representing a profile configuration.
-/// 
-/// # Members
-/// - `name`: Descriptive name of the profile; doesn't need to be unique,
-/// - `uuid`: Unique identifier for the profile; will be generated automatically, when the profile is created,
-/// - `config_file`: Path to the config file where this profile will be read from / stored at,
-/// - `target_dir`: Path to directory where the backup files will be stored,
-/// - `files_to_include`: Paths to files to include in backup,
-/// - `interval`: Interval specifying when to make the next backup.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ProfileConfig {
+    /// Descriptive name of the profile; doesn't need to be unique
     pub name: String,
+    /// Unique identifier for the profile; will be generated automatically, when the profile is created
     uuid: Uuid,
+    /// Path to the config file where this profile will be read from / stored at
     config_file: PathBuf,
+    /// Path to directory where the backup files will be stored
     pub target_dir: PathBuf,
+    /// Paths to files to include in backup
     pub files_to_include: Vec<PathBuf>,
+    /// Interval specifying when to make the next backup
     pub interval: IntervalType, // TODO
 }
 
