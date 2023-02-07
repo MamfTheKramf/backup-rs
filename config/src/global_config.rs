@@ -9,6 +9,8 @@ use std::{
 
 /// Class containing general configuration.
 /// Can read general configuration from a given file and store it in a given file.
+/// 
+/// `profile_configs` specify the path to the directory in which the `.json` files for the profiles can be found.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GeneralConfig {
     pub profile_configs: PathBuf,
@@ -76,5 +78,12 @@ mod global_config_tests {
         let config = GeneralConfig::read(tmp_file)?;
         assert_eq!(config.profile_configs, PathBuf::from("test"));
         Ok(())
+    }
+
+    #[test]
+    fn read_non_existing() {
+        let file = PathBuf::from("Non-existing.abc");
+        let config = GeneralConfig::read(file);
+        assert!(config.is_err());
     }
 }
