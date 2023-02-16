@@ -90,15 +90,19 @@ impl Into<u32> for Weekday {
     }
 }
 
-impl TryFrom<u8> for Weekday {
-    type Error = String;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value >= N {
-            Err(format!("Can only convert numbers between 0 and {} (inclusive) into weekdays. Got {}", N - 1, value))
-        } else {
-            Ok(Weekday::new(value))
-        }
+impl From<u32> for Weekday {
+    /// Converts [u32] cyclicly into [Weekday].
+    /// 
+    /// # Example
+    /// ```
+    /// use config::interval::weekdays::*;
+    /// 
+    /// assert_eq!(Weekday::from(0), Weekday::Monday());
+    /// assert_eq!(Weekday::from(5), Weekday::Saturday());
+    /// assert_eq!(Weekday::from(25), Weekday::Friday());
+    /// ```
+    fn from(value: u32) -> Self {
+        Weekday::new((value % N as u32) as u8)
     }
 }
 
@@ -133,20 +137,20 @@ mod weekday_tests {
 
     #[test]
     fn valid_from() {
-        assert_eq!(Weekday::Monday(), Weekday::try_from(0).unwrap());
-        assert_eq!(Weekday::Tuesday(), Weekday::try_from(1).unwrap());
-        assert_eq!(Weekday::Wednesday(), Weekday::try_from(2).unwrap());
-        assert_eq!(Weekday::Thursday(), Weekday::try_from(3).unwrap());
-        assert_eq!(Weekday::Friday(), Weekday::try_from(4).unwrap());
-        assert_eq!(Weekday::Saturday(), Weekday::try_from(5).unwrap());
-        assert_eq!(Weekday::Sunday(), Weekday::try_from(6).unwrap());
+        assert_eq!(Weekday::Monday(), Weekday::from(0));
+        assert_eq!(Weekday::Tuesday(), Weekday::from(1));
+        assert_eq!(Weekday::Wednesday(), Weekday::from(2));
+        assert_eq!(Weekday::Thursday(), Weekday::from(3));
+        assert_eq!(Weekday::Friday(), Weekday::from(4));
+        assert_eq!(Weekday::Saturday(), Weekday::from(5));
+        assert_eq!(Weekday::Sunday(), Weekday::from(6));
     }
 
     #[test]
-    fn invalid_from() {
-        assert!(Weekday::try_from(17).is_err());
-        assert!(Weekday::try_from(7).is_err());
-        assert!(Weekday::try_from(255).is_err());
-        assert!(Weekday::try_from(128).is_err());
+    fn overflow_from() {
+        assert_eq!(Weekday::Monday(), Weekday::from(7));
+        assert_eq!(Weekday::Thursday(), Weekday::from(10));
+        assert_eq!(Weekday::Sunday(), Weekday::from(13));
+        assert_eq!(Weekday::Monday(), Weekday::from(70));
     }
 }

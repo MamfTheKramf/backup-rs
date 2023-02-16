@@ -85,15 +85,19 @@ impl Into<u32> for Month {
     }
 }
 
-impl TryFrom<u8> for Month {
-    type Error = String;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value >= N {
-            Err(format!("Can only convert numbers between 0 and {} (inclusive) into months. Got {}", N - 1, value))
-        } else {
-            Ok(Month::new(value))
-        }
+impl From<u32> for Month {
+    /// Converts [u32] cyclicly into [Month]. 
+    ///
+    /// # Example
+    /// ```
+    /// use config::interval::months::*;
+    /// 
+    /// assert_eq!(Month::from(0), Month::January());
+    /// assert_eq!(Month::from(7), Month::August());
+    /// assert_eq!(Month::from(17), Month::June());
+    /// ```
+    fn from(value: u32) -> Self {
+        Month::new((value % N as u32) as u8)
     }
 }
 
@@ -130,27 +134,26 @@ mod months_tests {
     }
 
     #[test]
-    fn valid_try() {
-        assert_eq!(Month::January(), Month::try_from(0).unwrap());
-        assert_eq!(Month::February(), Month::try_from(1).unwrap());
-        assert_eq!(Month::March(), Month::try_from(2).unwrap());
-        assert_eq!(Month::April(), Month::try_from(3).unwrap());
-        assert_eq!(Month::May(), Month::try_from(4).unwrap());
-        assert_eq!(Month::June(), Month::try_from(5).unwrap());
-        assert_eq!(Month::July(), Month::try_from(6).unwrap());
-        assert_eq!(Month::August(), Month::try_from(7).unwrap());
-        assert_eq!(Month::September(), Month::try_from(8).unwrap());
-        assert_eq!(Month::October(), Month::try_from(9).unwrap());
-        assert_eq!(Month::November(), Month::try_from(10).unwrap());
-        assert_eq!(Month::December(), Month::try_from(11).unwrap());
+    fn normal_from() {
+        assert_eq!(Month::January(), Month::from(0));
+        assert_eq!(Month::February(), Month::from(1));
+        assert_eq!(Month::March(), Month::from(2));
+        assert_eq!(Month::April(), Month::from(3));
+        assert_eq!(Month::May(), Month::from(4));
+        assert_eq!(Month::June(), Month::from(5));
+        assert_eq!(Month::July(), Month::from(6));
+        assert_eq!(Month::August(), Month::from(7));
+        assert_eq!(Month::September(), Month::from(8));
+        assert_eq!(Month::October(), Month::from(9));
+        assert_eq!(Month::November(), Month::from(10));
+        assert_eq!(Month::December(), Month::from(11));
     }
 
     #[test]
-    fn invalid_try() {
-        assert!(Month::try_from(12).is_err());
-        assert!(Month::try_from(128).is_err());
-        assert!(Month::try_from(185).is_err());
-        assert!(Month::try_from(94).is_err());
-        assert!(Month::try_from(50).is_err());
+    fn overflow_try() {
+        assert_eq!(Month::January(), Month::from(12));
+        assert_eq!(Month::February(), Month::from(25));
+        assert_eq!(Month::July(), Month::from(18));
+        assert_eq!(Month::September(), Month::from(20));
     }
 }
