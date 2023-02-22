@@ -13,68 +13,68 @@ pub struct Month {
 
 impl Month {
     /// Creates a weekday for the given number
-    fn new(month: u8) -> Month {
+    const fn new(month: u8) -> Month {
         Month { month }
     }
     
     /// Creates a weekday representing January
     #[allow(non_snake_case)]
-    pub fn January() -> Month {
+    pub const fn January() -> Month {
         Month::new(0)
     }
     /// Creates a weekday representing February
     #[allow(non_snake_case)]
-    pub fn February() -> Month {
+    pub const fn February() -> Month {
         Month::new(1)
     }
     /// Creates a weekday representing March
     #[allow(non_snake_case)]
-    pub fn March() -> Month {
+    pub const fn March() -> Month {
         Month::new(2)
     }
     /// Creates a weekday representing April
     #[allow(non_snake_case)]
-    pub fn April() -> Month {
+    pub const fn April() -> Month {
         Month::new(3)
     }
     /// Creates a weekday representing May
     #[allow(non_snake_case)]
-    pub fn May() -> Month {
+    pub const fn May() -> Month {
         Month::new(4)
     }
     /// Creates a weekday representing June
     #[allow(non_snake_case)]
-    pub fn June() -> Month {
+    pub const fn June() -> Month {
         Month::new(5)
     }
     /// Creates a weekday representing July
     #[allow(non_snake_case)]
-    pub fn July() -> Month {
+    pub const fn July() -> Month {
         Month::new(6)
     }
     /// Creates a weekday representing August
     #[allow(non_snake_case)]
-    pub fn August() -> Month {
+    pub const fn August() -> Month {
         Month::new(7)
     }
     /// Creates a weekday representing September
     #[allow(non_snake_case)]
-    pub fn September() -> Month {
+    pub const fn September() -> Month {
         Month::new(8)
     }
     /// Creates a weekday representing October
     #[allow(non_snake_case)]
-    pub fn October() -> Month {
+    pub const fn October() -> Month {
         Month::new(9)
     }
     /// Creates a weekday representing November
     #[allow(non_snake_case)]
-    pub fn November() -> Month {
+    pub const fn November() -> Month {
         Month::new(10)
     }
     /// Creates a weekday representing December
     #[allow(non_snake_case)]
-    pub fn December() -> Month {
+    pub const fn December() -> Month {
         Month::new(11)
     }
 }

@@ -4,7 +4,7 @@
 /// Represents a specifier.
 /// Has a range of possible values and a specifier rule that filters out all none-specified values in that range.
 /// The represented range is inclusive. I.e., `min` and `max` can be matched by the specifier-rule as well.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Specifier<T>
 where
     T: Into<u32> + From<u32> + Copy,

@@ -13,43 +13,43 @@ pub struct Weekday {
 
 impl Weekday {
     /// Creates a weekday for the given number
-    fn new(day: u8) -> Weekday {
+    const fn new(day: u8) -> Weekday {
         Weekday { day }
     }
     
     /// Creates a weekday representing Monday
     #[allow(non_snake_case)]
-    pub fn Monday() -> Weekday {
+    pub const fn Monday() -> Weekday {
         Weekday::new(0)
     }
     /// Creates a weekday representing Tuesday
     #[allow(non_snake_case)]
-    pub fn Tuesday() -> Weekday {
+    pub const fn Tuesday() -> Weekday {
         Weekday::new(1)
     }
     /// Creates a weekday representing Wednesday
     #[allow(non_snake_case)]
-    pub fn Wednesday() -> Weekday {
+    pub const fn Wednesday() -> Weekday {
         Weekday::new(2)
     }
     /// Creates a weekday representing Thursday
     #[allow(non_snake_case)]
-    pub fn Thursday() -> Weekday {
+    pub const fn Thursday() -> Weekday {
         Weekday::new(3)
     }
     /// Creates a weekday representing Friday
     #[allow(non_snake_case)]
-    pub fn Friday() -> Weekday {
+    pub const fn Friday() -> Weekday {
         Weekday::new(4)
     }
     /// Creates a weekday representing Saturday
     #[allow(non_snake_case)]
-    pub fn Saturday() -> Weekday {
+    pub const fn Saturday() -> Weekday {
         Weekday::new(5)
     }
     /// Creates a weekday representing Sunday
     #[allow(non_snake_case)]
-    pub fn Sunday() -> Weekday {
+    pub const fn Sunday() -> Weekday {
         Weekday::new(6)
     }
 
