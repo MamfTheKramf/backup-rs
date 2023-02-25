@@ -6,11 +6,18 @@ pub mod months;
 pub mod specifier;
 pub mod weekdays;
 
+use chrono::{Datelike, NaiveDate};
 use derive_builder::Builder;
 use specifier::{Specifier, SpecifierKind};
 
+use self::{months::Month, weekdays::Weekday};
+
 /// Allows to specify specific times in the range of every minute up to only once a year.
-/// Has similar capabilities as the time specifier in crontabs on Linux
+/// Has similar capabilities as the time specifier in crontabs on Linux.
+///
+/// If weekdays and monthdays are both not [SpecifierKind::All], then only one of them has to match.
+/// 
+/// Weeknumbers are handles as [ISO-Weeks](https://en.wikipedia.org/wiki/ISO_week_date). I.e., the first week with 4 days or mor in a year is week 0.
 #[derive(Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Interval {
@@ -34,7 +41,7 @@ pub struct Interval {
         default = "Specifier::new(*MONTHDAYS_RANGE.start(), *MONTHDAYS_RANGE.end(), SpecifierKind::All)"
     )]
     monthdays: Specifier<u32>,
-    /// Range 0-53
+    /// Range 0-52
     #[builder(
         default = "Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All)"
     )]
@@ -50,8 +57,8 @@ const MINUTES_RANGE: RangeInclusive<u32> = 0..=59;
 const HOURS_RANGE: RangeInclusive<u32> = 0..=23;
 const WEEKDAYS_RANGE: RangeInclusive<weekdays::Weekday> =
     weekdays::Weekday::Monday()..=weekdays::Weekday::Sunday();
-const MONTHDAYS_RANGE: RangeInclusive<u32> = 0..=32;
-const WEEKS_RANGE: RangeInclusive<u32> = 0..=53;
+const MONTHDAYS_RANGE: RangeInclusive<u32> = 0..=31;
+const WEEKS_RANGE: RangeInclusive<u32> = 0..=52;
 const MONTHS_RANGE: RangeInclusive<months::Month> =
     months::Month::January()..=months::Month::December();
 
@@ -74,13 +81,43 @@ impl Interval {
             ));
         }
 
-        let minutes_spec = Specifier::new(*MINUTES_RANGE.start(), *MINUTES_RANGE.end(), SpecifierKind::Nth(minute));
-        let hours_spec = Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::Nth(hour));
-        
-        match IntervalBuilder::default().minutes(minutes_spec).hours(hours_spec).build() {
+        let minutes_spec = Specifier::new(
+            *MINUTES_RANGE.start(),
+            *MINUTES_RANGE.end(),
+            SpecifierKind::Nth(minute),
+        );
+        let hours_spec = Specifier::new(
+            *HOURS_RANGE.start(),
+            *HOURS_RANGE.end(),
+            SpecifierKind::Nth(hour),
+        );
+
+        match IntervalBuilder::default()
+            .minutes(minutes_spec)
+            .hours(hours_spec)
+            .build()
+        {
             Ok(interval) => Ok(interval),
             Err(err) => Err(err.to_string()),
         }
+    }
+
+    /// Checks if the provided [NaiveDate] is matches by the interval
+    /// 
+    /// If both wekkdays specifier and monthday specifier are not [SpecifierKind::All], only one of them has to match.
+    pub fn matches_date(&self, date: NaiveDate) -> bool {
+        let weekday_match = self.weekdays.matches(Weekday::from(date.weekday().num_days_from_monday()));
+        let monthday_match = self.monthdays.matches(date.day0());
+        let day_match = if self.weekdays.kind() != &SpecifierKind::All && self.monthdays.kind() != &SpecifierKind::All {
+            weekday_match || monthday_match
+        } else {
+            weekday_match && monthday_match
+        };
+        
+        let week_match = self.weeks.matches(date.iso_week().week0());
+        let month_match = self.months.matches(Month::from(date.month0()));
+        
+        day_match && week_match && month_match
     }
 }
 
@@ -98,6 +135,11 @@ impl IntervalBuilder {
     }
 }
 
+/// Checks that the range of a given [Specifier] is inside the `reference_range`.
+/// 
+/// # Returns
+/// Empty [Ok] if the [Specifier]-range is within the `reference_range`.
+/// [Err] with a [String] describing the issue if the [Specifier]-range is out of the `reference_range`
 fn in_range<T: Into<u32> + From<u32> + Copy + std::fmt::Debug>(
     reference_range: RangeInclusive<T>,
     spec_opt: &Option<Specifier<T>>,
@@ -124,7 +166,6 @@ fn in_range<T: Into<u32> + From<u32> + Copy + std::fmt::Debug>(
     }
 }
 
-
 #[cfg(test)]
 mod interval_tests {
     use super::*;
@@ -136,25 +177,89 @@ mod interval_tests {
         fn all_defaults() {
             let interval = IntervalBuilder::default().build().unwrap();
 
-            assert_eq!(interval.minutes, Specifier::new(*MINUTES_RANGE.start(), *MINUTES_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.hours, Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.weekdays, Specifier::new(*WEEKDAYS_RANGE.start(), *WEEKDAYS_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.monthdays, Specifier::new(*MONTHDAYS_RANGE.start(), *MONTHDAYS_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.weeks, Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.months, Specifier::new(*MONTHS_RANGE.start(), *MONTHS_RANGE.end(), SpecifierKind::All));
+            assert_eq!(
+                interval.minutes,
+                Specifier::new(
+                    *MINUTES_RANGE.start(),
+                    *MINUTES_RANGE.end(),
+                    SpecifierKind::All
+                )
+            );
+            assert_eq!(
+                interval.hours,
+                Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::All)
+            );
+            assert_eq!(
+                interval.weekdays,
+                Specifier::new(
+                    *WEEKDAYS_RANGE.start(),
+                    *WEEKDAYS_RANGE.end(),
+                    SpecifierKind::All
+                )
+            );
+            assert_eq!(
+                interval.monthdays,
+                Specifier::new(
+                    *MONTHDAYS_RANGE.start(),
+                    *MONTHDAYS_RANGE.end(),
+                    SpecifierKind::All
+                )
+            );
+            assert_eq!(
+                interval.weeks,
+                Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All)
+            );
+            assert_eq!(
+                interval.months,
+                Specifier::new(
+                    *MONTHS_RANGE.start(),
+                    *MONTHS_RANGE.end(),
+                    SpecifierKind::All
+                )
+            );
         }
 
         #[test]
         fn variations() {
             let monthdays_spec = Specifier::new(5, 17, SpecifierKind::Nth(4));
-            let interval = IntervalBuilder::default().monthdays(monthdays_spec.clone()).build().unwrap();
+            let interval = IntervalBuilder::default()
+                .monthdays(monthdays_spec.clone())
+                .build()
+                .unwrap();
 
-            assert_eq!(interval.minutes, Specifier::new(*MINUTES_RANGE.start(), *MINUTES_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.hours, Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.weekdays, Specifier::new(*WEEKDAYS_RANGE.start(), *WEEKDAYS_RANGE.end(), SpecifierKind::All));
+            assert_eq!(
+                interval.minutes,
+                Specifier::new(
+                    *MINUTES_RANGE.start(),
+                    *MINUTES_RANGE.end(),
+                    SpecifierKind::All
+                )
+            );
+            assert_eq!(
+                interval.hours,
+                Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::All)
+            );
+            assert_eq!(
+                interval.weekdays,
+                Specifier::new(
+                    *WEEKDAYS_RANGE.start(),
+                    *WEEKDAYS_RANGE.end(),
+                    SpecifierKind::All
+                )
+            );
             assert_eq!(interval.monthdays, monthdays_spec);
-            assert_eq!(interval.weeks, Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All));
-            assert_eq!(interval.months, Specifier::new(*MONTHS_RANGE.start(), *MONTHS_RANGE.end(), SpecifierKind::All));
+            assert_eq!(
+                interval.weeks,
+                Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All)
+            );
+            assert_eq!(
+                interval.months,
+                Specifier::new(
+                    *MONTHS_RANGE.start(),
+                    *MONTHS_RANGE.end(),
+                    SpecifierKind::All
+                )
+            );
         }
 
         #[test]
@@ -163,6 +268,190 @@ mod interval_tests {
             let interval = IntervalBuilder::default().weeks(weeks_spec).build();
 
             assert!(interval.is_err());
+        }
+    }
+
+    mod date_matches {
+        use super::*;
+
+        #[test]
+        fn all_days() {
+            let interval = IntervalBuilder::default()
+                .weekdays(Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::All))
+                .weeks(Specifier::new(0, 52, SpecifierKind::All))
+                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::All))
+                .build()
+                .unwrap();
+
+            let date = NaiveDate::from_ymd_opt(2023, 2, 25).unwrap();
+            assert!(interval.matches_date(date));
+            
+            let date = NaiveDate::from_ymd_opt(123, 9, 12).unwrap();
+            assert!(interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
+            assert!(interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 12, 31).unwrap();
+            assert!(interval.matches_date(date));
+        }
+
+        #[test]
+        fn no_days() {
+            let interval = IntervalBuilder::default()
+                .weekdays(Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::None))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::None))
+                .weeks(Specifier::new(0, 52, SpecifierKind::None))
+                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::None))
+                .build()
+                .unwrap();
+
+            let date = NaiveDate::from_ymd_opt(2023, 2, 25).unwrap();
+            assert!(!interval.matches_date(date));
+            
+            let date = NaiveDate::from_ymd_opt(123, 9, 12).unwrap();
+            assert!(!interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
+            assert!(!interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 12, 31).unwrap();
+            assert!(!interval.matches_date(date));
+        }
+
+        #[test]
+        fn only_jan() {
+            let interval = IntervalBuilder::default()
+                .weekdays(Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::All))
+                .weeks(Specifier::new(0, 52, SpecifierKind::All))
+                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::Nth(0)))
+                .build()
+                .unwrap();
+
+            let date = NaiveDate::from_ymd_opt(2023, 2, 25).unwrap();
+            assert!(!interval.matches_date(date));
+            
+            let date = NaiveDate::from_ymd_opt(123, 9, 12).unwrap();
+            assert!(!interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 17).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 31).unwrap();
+            assert!(interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 12, 31).unwrap();
+            assert!(!interval.matches_date(date));
+        }
+
+        #[test]
+        fn every_second_week() {
+            let interval = IntervalBuilder::default()
+                .weekdays(Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::All))
+                .weeks(Specifier::new(0, 52, SpecifierKind::EveryNth(2, 0)))
+                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::All))
+                .build()
+                .unwrap();
+            // matches_date uses iso_weeks and 2023-01-01 is a sunday -> 0th week starts at 2023-01-02
+            let date = NaiveDate::from_ymd_opt(2023, 1, 2).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 5).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 8).unwrap();
+            assert!(interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 1, 9).unwrap();
+            assert!(!interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 11).unwrap();
+            assert!(!interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 15).unwrap();
+            assert!(!interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 1, 16).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 20).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 1, 22).unwrap();
+            assert!(interval.matches_date(date));
+
+
+            let date = NaiveDate::from_ymd_opt(2023, 7, 24).unwrap();
+            assert!(!interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 10, 18).unwrap();
+            assert!(!interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2023, 12, 15).unwrap();
+            assert!(!interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2023, 12, 24).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2024, 3, 13).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(1968, 5, 20).unwrap();
+            assert!(interval.matches_date(date));  
+        }
+
+        #[test]
+        fn every_monday() {
+            let interval = IntervalBuilder::default()
+                .weekdays(Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::Nth(0)))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::All))
+                .weeks(Specifier::new(0, 52, SpecifierKind::All))
+                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::All))
+                .build()
+                .unwrap();
+
+            let date = NaiveDate::from_ymd_opt(1968, 5, 20).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(1976, 11, 8).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2000, 1, 3).unwrap();
+            assert!(interval.matches_date(date));
+
+            let date = NaiveDate::from_ymd_opt(2004, 9, 17).unwrap();
+            assert!(!interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2007, 1, 31).unwrap();
+            assert!(!interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2013, 12, 1).unwrap();
+            assert!(!interval.matches_date(date));
+        }
+
+        #[test]
+        fn weekdays_and_monthdays() {
+            let interval = IntervalBuilder::default()
+                .weekdays(Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::ExplicitNths(vec![5, 6])))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::ExplicitNths(vec![0, 9, 19, 29])))
+                .weeks(Specifier::new(0, 52, SpecifierKind::All))
+                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::All))
+                .build()
+                .unwrap();
+
+            // matches monthday
+            let date = NaiveDate::from_ymd_opt(1900, 6, 1).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(1750, 4, 30).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2020, 8, 20).unwrap();
+            assert!(interval.matches_date(date));
+
+            // matches weekday
+            let date = NaiveDate::from_ymd_opt(2023, 2, 25).unwrap();
+            assert!(interval.matches_date(date));
+
+            // matches both
+            let date = NaiveDate::from_ymd_opt(2004, 2, 1).unwrap();
+            assert!(interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2004, 10, 30).unwrap();
+            assert!(interval.matches_date(date));
+            
+            // matches none
+            let date = NaiveDate::from_ymd_opt(2007, 4, 18).unwrap();
+            assert!(!interval.matches_date(date));
+            let date = NaiveDate::from_ymd_opt(2011, 7, 26).unwrap();
+            assert!(!interval.matches_date(date));
         }
     }
 }
