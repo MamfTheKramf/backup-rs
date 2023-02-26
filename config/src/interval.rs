@@ -2,14 +2,13 @@
 
 use std::ops::RangeInclusive;
 
-pub mod months;
-pub mod specifier;
-pub mod weekdays;
+mod date_time_match;
 
-use chrono::{Datelike, NaiveDate, NaiveTime, Timelike};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use derive_builder::Builder;
 
 pub use self::{
+    date_time_match::DateTimeMatch,
     months::Month,
     specifier::{Specifier, SpecifierKind},
     weekdays::Weekday,
@@ -175,6 +174,56 @@ impl Interval {
     /// ```
     pub fn matches_time(&self, time: NaiveTime) -> bool {
         self.minutes.matches(time.minute()) && self.hours.matches(time.hour())
+    }
+
+    /// Checks if the given [NaiveDateTime] is matched by the interval.
+    /// 
+    /// # Returns
+    /// [DateTimeMatch::Ok] if it is matched.
+    /// [DateTimeMatch::TimeNotMatched] if the date is matched but not the time.
+    /// [DateTimeMatch::DateNotMatched] if the date is not matched. Is also returned when both are not matched.
+    /// 
+    /// # Example
+    /// ```
+    /// use config::interval::*;
+    /// use chrono::NaiveDate;
+    /// 
+    /// let first_dec_7am = IntervalBuilder::default()
+    ///     .minutes(Specifier::new(0, 59, SpecifierKind::First))
+    ///     .hours(Specifier::new(0, 23, SpecifierKind::Nth(7)))
+    ///     .monthdays(Specifier::new(0, 31, SpecifierKind::First))
+    ///     .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::Last))
+    ///     .build()
+    ///     .unwrap();
+    /// 
+    /// let matched_datetime = NaiveDate::from_ymd_opt(2000, 12, 1).unwrap()
+    ///     .and_hms_opt(7, 0, 25).unwrap();
+    /// assert_eq!(first_dec_7am.matches_datetime(matched_datetime), DateTimeMatch::Ok);
+    /// 
+    /// let wrong_date = NaiveDate::from_ymd_opt(2023, 9, 5).unwrap()
+    ///     .and_hms_opt(7, 0, 17).unwrap();
+    /// assert_eq!(first_dec_7am.matches_datetime(wrong_date), DateTimeMatch::DateNotMatched);
+    /// 
+    /// let wrong_time = NaiveDate::from_ymd_opt(2000, 12, 1).unwrap()
+    ///     .and_hms_opt(19, 5, 33).unwrap();
+    /// assert_eq!(first_dec_7am.matches_datetime(wrong_time), DateTimeMatch::TimeNotMatched);
+    /// 
+    /// let both_wrong = NaiveDate::from_ymd_opt(1999, 5, 27).unwrap()
+    ///     .and_hms_opt(12, 49, 14).unwrap();
+    /// assert_eq!(first_dec_7am.matches_datetime(both_wrong), DateTimeMatch::DateNotMatched);
+    /// ```
+    pub fn matches_datetime(&self, datetime: NaiveDateTime) -> DateTimeMatch {
+        let date = datetime.date();
+        if !self.matches_date(date) {
+            return DateTimeMatch::DateNotMatched;
+        }
+
+        let time = datetime.time();
+        if !self.matches_time(time) {
+            return DateTimeMatch::TimeNotMatched;
+        }
+
+        DateTimeMatch::Ok
     }
 }
 
@@ -540,7 +589,8 @@ mod interval_tests {
             let interval = IntervalBuilder::default()
                 .minutes(Specifier::new(0, 59, SpecifierKind::None))
                 .hours(Specifier::new(0, 23, SpecifierKind::None))
-                .build().unwrap();
+                .build()
+                .unwrap();
 
             let time = NaiveTime::from_hms_opt(12, 12, 12).unwrap();
             assert!(!interval.matches_time(time));
@@ -569,6 +619,91 @@ mod interval_tests {
                 assert!(!interval.matches_time(time));
                 let time = NaiveTime::from_hms_opt(1, 40, 12).unwrap();
                 assert!(!interval.matches_time(time));
+        }
+    }
+
+    mod matches_datetime_tests {
+        use super::*;
+
+        #[test]
+        fn all_datetimes() {
+            let interval = IntervalBuilder::default().build().unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20).unwrap()
+                .and_hms_opt(18, 55, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
+            let datetime = NaiveDate::from_ymd_opt(2001, 1, 1).unwrap()
+                .and_hms_opt(0, 0, 0).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 31).unwrap()
+                .and_hms_opt(23, 59, 59).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
+        }
+
+        #[test]
+        fn no_datetimes() {
+            let interval = IntervalBuilder::default()
+                .minutes(Specifier::new(0, 59, SpecifierKind::None))
+                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::None))
+                .build().unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20).unwrap()
+                .and_hms_opt(18, 55, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
+            let datetime = NaiveDate::from_ymd_opt(2001, 1, 1).unwrap()
+                .and_hms_opt(0, 0, 0).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 31).unwrap()
+                .and_hms_opt(23, 59, 59).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
+        }
+
+        #[test]
+        fn wrong_date() {
+            // matches each full hour of the first day of each month
+            let interval = IntervalBuilder::default()
+                .minutes(Specifier::new(0, 59, SpecifierKind::First))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::First))
+                .build().unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20).unwrap()
+                .and_hms_opt(18, 55, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
+            let datetime = NaiveDate::from_ymd_opt(2000, 9, 13).unwrap()
+                .and_hms_opt(18, 0, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
+        }
+
+        #[test]
+        fn wrong_time() {
+            // matches each full hour of the first day of each month
+            let interval = IntervalBuilder::default()
+                .minutes(Specifier::new(0, 59, SpecifierKind::First))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::First))
+                .build().unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 1).unwrap()
+                .and_hms_opt(18, 55, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::TimeNotMatched);
+            let datetime = NaiveDate::from_ymd_opt(2000, 9, 1).unwrap()
+                .and_hms_opt(3, 17, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::TimeNotMatched);
+        }
+
+        #[test]
+        fn correct_datetime() {
+            // matches each full hour of the first day of each month
+            let interval = IntervalBuilder::default()
+                .minutes(Specifier::new(0, 59, SpecifierKind::First))
+                .monthdays(Specifier::new(0, 31, SpecifierKind::First))
+                .build().unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 1).unwrap()
+                .and_hms_opt(18, 0, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
+            let datetime = NaiveDate::from_ymd_opt(2000, 9, 1).unwrap()
+                .and_hms_opt(3, 0, 19).unwrap();
+            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
         }
     }
 }
