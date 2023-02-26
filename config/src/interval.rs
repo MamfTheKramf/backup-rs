@@ -2,10 +2,10 @@
 
 use std::ops::RangeInclusive;
 
+mod date_time_match;
 mod months;
 mod specifier;
 mod weekdays;
-mod date_time_match;
 
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use derive_builder::Builder;
@@ -24,36 +24,46 @@ pub use self::{
 ///
 /// Weeknumbers are handles as [ISO-Weeks](https://en.wikipedia.org/wiki/ISO_week_date). I.e., the first week with 4 days or mor in a year is week 0.
 #[derive(Builder)]
-#[builder(build_fn(validate = "Self::validate"))]
 pub struct Interval {
     /// Range 0-59
     #[builder(
-        default = "Specifier::new(*MINUTES_RANGE.start(), *MINUTES_RANGE.end(), SpecifierKind::All)"
+        default = "Specifier::new(*MINUTES_RANGE.start(), *MINUTES_RANGE.end(), SpecifierKind::All)",
+        setter(custom)
     )]
     minutes: Specifier<u32>,
+
     /// Range 0-23
     #[builder(
-        default = "Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::All)"
+        default = "Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::All)",
+        setter(custom)
     )]
     hours: Specifier<u32>,
+
     /// Range Monday-Sunday
     #[builder(
-        default = "Specifier::new(*WEEKDAYS_RANGE.start(), *WEEKDAYS_RANGE.end(), SpecifierKind::All)"
+        default = "Specifier::new(*WEEKDAYS_RANGE.start(), *WEEKDAYS_RANGE.end(), SpecifierKind::All)",
+        setter(custom)
     )]
     weekdays: Specifier<weekdays::Weekday>,
+
     /// Range 0-32
     #[builder(
-        default = "Specifier::new(*MONTHDAYS_RANGE.start(), *MONTHDAYS_RANGE.end(), SpecifierKind::All)"
+        default = "Specifier::new(*MONTHDAYS_RANGE.start(), *MONTHDAYS_RANGE.end(), SpecifierKind::All)",
+        setter(custom)
     )]
     monthdays: Specifier<u32>,
+
     /// Range 0-52
     #[builder(
-        default = "Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All)"
+        default = "Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All)",
+        setter(custom)
     )]
     weeks: Specifier<u32>,
+
     /// Range January-December
     #[builder(
-        default = "Specifier::new(*MONTHS_RANGE.start(), *MONTHS_RANGE.end(), SpecifierKind::All)"
+        default = "Specifier::new(*MONTHS_RANGE.start(), *MONTHS_RANGE.end(), SpecifierKind::All)",
+        setter(custom)
     )]
     months: Specifier<months::Month>,
 }
@@ -86,16 +96,8 @@ impl Interval {
             ));
         }
 
-        let minutes_spec = Specifier::new(
-            *MINUTES_RANGE.start(),
-            *MINUTES_RANGE.end(),
-            SpecifierKind::Nth(minute),
-        );
-        let hours_spec = Specifier::new(
-            *HOURS_RANGE.start(),
-            *HOURS_RANGE.end(),
-            SpecifierKind::Nth(hour),
-        );
+        let minutes_spec = SpecifierKind::Nth(minute);
+        let hours_spec = SpecifierKind::Nth(hour);
 
         match IntervalBuilder::default()
             .minutes(minutes_spec)
@@ -117,8 +119,8 @@ impl Interval {
     /// use chrono::NaiveDate;
     ///
     /// let yearly = IntervalBuilder::default()
-    ///     .monthdays(Specifier::new(0, 31, SpecifierKind::Nth(10)))
-    ///     .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::Nth(3)))
+    ///     .monthdays(SpecifierKind::Nth(10))
+    ///     .months(SpecifierKind::Nth(3))
     ///     .build()
     ///     .unwrap();
     /// assert!(yearly.matches_date(NaiveDate::from_ymd_opt(2000, 4, 11).unwrap()));
@@ -128,8 +130,8 @@ impl Interval {
     ///
     /// // matches both mondays and sundays *and* every 13th
     /// let week_and_monthdays = IntervalBuilder::default()
-    ///     .weekdays(Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::ExplicitNths(vec![0, 6])))
-    ///     .monthdays(Specifier::new(0, 31, SpecifierKind::Nth(12)))
+    ///     .weekdays(SpecifierKind::ExplicitNths(vec![0, 6]))
+    ///     .monthdays(SpecifierKind::Nth(12))
     ///     .build()
     ///     .unwrap();
     /// let sunday = NaiveDate::from_ymd_opt(2023, 4, 23).unwrap();
@@ -166,8 +168,8 @@ impl Interval {
     /// use chrono::NaiveTime;
     ///
     /// let interval = IntervalBuilder::default()
-    ///     .minutes(Specifier::new(0, 59, SpecifierKind::Nth(30)))
-    ///     .hours(Specifier::new(0, 23, SpecifierKind::Nth(12)))
+    ///     .minutes(SpecifierKind::Nth(30))
+    ///     .hours(SpecifierKind::Nth(12))
     ///     .build()
     ///     .unwrap();
     /// let half_past_12 = NaiveTime::from_hms_opt(12, 30, 0).unwrap();
@@ -180,37 +182,37 @@ impl Interval {
     }
 
     /// Checks if the given [NaiveDateTime] is matched by the interval.
-    /// 
+    ///
     /// # Returns
     /// [DateTimeMatch::Ok] if it is matched.
     /// [DateTimeMatch::TimeNotMatched] if the date is matched but not the time.
     /// [DateTimeMatch::DateNotMatched] if the date is not matched. Is also returned when both are not matched.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use config::interval::*;
     /// use chrono::NaiveDate;
-    /// 
+    ///
     /// let first_dec_7am = IntervalBuilder::default()
-    ///     .minutes(Specifier::new(0, 59, SpecifierKind::First))
-    ///     .hours(Specifier::new(0, 23, SpecifierKind::Nth(7)))
-    ///     .monthdays(Specifier::new(0, 31, SpecifierKind::First))
-    ///     .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::Last))
+    ///     .minutes(SpecifierKind::First)
+    ///     .hours(SpecifierKind::Nth(7))
+    ///     .monthdays(SpecifierKind::First)
+    ///     .months(SpecifierKind::Last)
     ///     .build()
     ///     .unwrap();
-    /// 
+    ///
     /// let matched_datetime = NaiveDate::from_ymd_opt(2000, 12, 1).unwrap()
     ///     .and_hms_opt(7, 0, 25).unwrap();
     /// assert_eq!(first_dec_7am.matches_datetime(matched_datetime), DateTimeMatch::Ok);
-    /// 
+    ///
     /// let wrong_date = NaiveDate::from_ymd_opt(2023, 9, 5).unwrap()
     ///     .and_hms_opt(7, 0, 17).unwrap();
     /// assert_eq!(first_dec_7am.matches_datetime(wrong_date), DateTimeMatch::DateNotMatched);
-    /// 
+    ///
     /// let wrong_time = NaiveDate::from_ymd_opt(2000, 12, 1).unwrap()
     ///     .and_hms_opt(19, 5, 33).unwrap();
     /// assert_eq!(first_dec_7am.matches_datetime(wrong_time), DateTimeMatch::TimeNotMatched);
-    /// 
+    ///
     /// let both_wrong = NaiveDate::from_ymd_opt(1999, 5, 27).unwrap()
     ///     .and_hms_opt(12, 49, 14).unwrap();
     /// assert_eq!(first_dec_7am.matches_datetime(both_wrong), DateTimeMatch::DateNotMatched);
@@ -231,47 +233,58 @@ impl Interval {
 }
 
 impl IntervalBuilder {
-    /// Checks that all provided ranges are valid
-    pub fn validate(&self) -> Result<(), String> {
-        in_range(MINUTES_RANGE, &self.minutes, "minutes")?;
-        in_range(HOURS_RANGE, &self.hours, "hours")?;
-        in_range(WEEKDAYS_RANGE, &self.weekdays, "weekdays")?;
-        in_range(MONTHDAYS_RANGE, &self.monthdays, "monthdays")?;
-        in_range(WEEKS_RANGE, &self.weeks, "weeks")?;
-        in_range(MONTHS_RANGE, &self.months, "months")?;
-
-        Ok(())
+    pub fn minutes(&mut self, spec_kind: SpecifierKind) -> &mut Self {
+        self.minutes = Some(Specifier::new(
+            *MINUTES_RANGE.start(),
+            *MINUTES_RANGE.end(),
+            spec_kind,
+        ));
+        self
     }
-}
 
-/// Checks that the range of a given [Specifier] is inside the `reference_range`.
-///
-/// # Returns
-/// Empty [Ok] if the [Specifier]-range is within the `reference_range`.
-/// [Err] with a [String] describing the issue if the [Specifier]-range is out of the `reference_range`
-fn in_range<T: Into<u32> + From<u32> + Copy + std::fmt::Debug>(
-    reference_range: RangeInclusive<T>,
-    spec_opt: &Option<Specifier<T>>,
-    range_name: &str,
-) -> Result<(), String> {
-    let reference_range: RangeInclusive<u32> =
-        (*reference_range.start()).into()..=(*reference_range.end()).into();
-    match spec_opt {
-        Some(spec) => {
-            if !reference_range.contains(&spec.min().into())
-                || !reference_range.contains(&spec.max().into())
-            {
-                Err(format!(
-                    "Expect {} specifier to be in range {:?}. Got {:?}",
-                    range_name,
-                    reference_range,
-                    spec.min()..=spec.max()
-                ))
-            } else {
-                Ok(())
-            }
-        }
-        None => Ok(()),
+    pub fn hours(&mut self, spec_kind: SpecifierKind) -> &mut Self {
+        self.hours = Some(Specifier::new(
+            *HOURS_RANGE.start(),
+            *HOURS_RANGE.end(),
+            spec_kind,
+        ));
+        self
+    }
+
+    pub fn weekdays(&mut self, spec_kind: SpecifierKind) -> &mut Self {
+        self.weekdays = Some(Specifier::new(
+            *WEEKDAYS_RANGE.start(),
+            *WEEKDAYS_RANGE.end(),
+            spec_kind,
+        ));
+        self
+    }
+
+    pub fn monthdays(&mut self, spec_kind: SpecifierKind) -> &mut Self {
+        self.monthdays = Some(Specifier::new(
+            *MONTHDAYS_RANGE.start(),
+            *MONTHDAYS_RANGE.end(),
+            spec_kind,
+        ));
+        self
+    }
+
+    pub fn weeks(&mut self, spec_kind: SpecifierKind) -> &mut Self {
+        self.weeks = Some(Specifier::new(
+            *WEEKS_RANGE.start(),
+            *WEEKS_RANGE.end(),
+            spec_kind,
+        ));
+        self
+    }
+
+    pub fn months(&mut self, spec_kind: SpecifierKind) -> &mut Self {
+        self.months = Some(Specifier::new(
+            *MONTHS_RANGE.start(),
+            *MONTHS_RANGE.end(),
+            spec_kind,
+        ));
+        self
     }
 }
 
@@ -330,7 +343,7 @@ mod interval_tests {
 
         #[test]
         fn variations() {
-            let monthdays_spec = Specifier::new(5, 17, SpecifierKind::Nth(4));
+            let monthdays_spec = SpecifierKind::Nth(4);
             let interval = IntervalBuilder::default()
                 .monthdays(monthdays_spec.clone())
                 .build()
@@ -356,7 +369,7 @@ mod interval_tests {
                     SpecifierKind::All
                 )
             );
-            assert_eq!(interval.monthdays, monthdays_spec);
+            assert_eq!(interval.monthdays.kind(), &monthdays_spec);
             assert_eq!(
                 interval.weeks,
                 Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All)
@@ -369,14 +382,6 @@ mod interval_tests {
                     SpecifierKind::All
                 )
             );
-        }
-
-        #[test]
-        fn invalid_range() {
-            let weeks_spec = Specifier::new(0, 100, SpecifierKind::All);
-            let interval = IntervalBuilder::default().weeks(weeks_spec).build();
-
-            assert!(interval.is_err());
         }
     }
 
@@ -403,18 +408,10 @@ mod interval_tests {
         #[test]
         fn no_days() {
             let interval = IntervalBuilder::default()
-                .weekdays(Specifier::new(
-                    Weekday::Monday(),
-                    Weekday::Sunday(),
-                    SpecifierKind::None,
-                ))
-                .monthdays(Specifier::new(0, 31, SpecifierKind::None))
-                .weeks(Specifier::new(0, 52, SpecifierKind::None))
-                .months(Specifier::new(
-                    Month::January(),
-                    Month::December(),
-                    SpecifierKind::None,
-                ))
+                .weekdays(SpecifierKind::None)
+                .monthdays(SpecifierKind::None)
+                .weeks(SpecifierKind::None)
+                .months(SpecifierKind::None)
                 .build()
                 .unwrap();
 
@@ -434,11 +431,7 @@ mod interval_tests {
         #[test]
         fn only_jan() {
             let interval = IntervalBuilder::default()
-                .months(Specifier::new(
-                    Month::January(),
-                    Month::December(),
-                    SpecifierKind::Nth(0),
-                ))
+                .months(SpecifierKind::Nth(0))
                 .build()
                 .unwrap();
 
@@ -462,7 +455,7 @@ mod interval_tests {
         #[test]
         fn every_second_week() {
             let interval = IntervalBuilder::default()
-                .weeks(Specifier::new(0, 52, SpecifierKind::EveryNth(2, 0)))
+                .weeks(SpecifierKind::EveryNth(2, 0))
                 .build()
                 .unwrap();
             // matches_date uses iso_weeks and 2023-01-01 is a sunday -> 0th week starts at 2023-01-02
@@ -505,11 +498,7 @@ mod interval_tests {
         #[test]
         fn every_monday() {
             let interval = IntervalBuilder::default()
-                .weekdays(Specifier::new(
-                    Weekday::Monday(),
-                    Weekday::Sunday(),
-                    SpecifierKind::Nth(0),
-                ))
+                .weekdays(SpecifierKind::Nth(0))
                 .build()
                 .unwrap();
 
@@ -531,16 +520,8 @@ mod interval_tests {
         #[test]
         fn weekdays_and_monthdays() {
             let interval = IntervalBuilder::default()
-                .weekdays(Specifier::new(
-                    Weekday::Monday(),
-                    Weekday::Sunday(),
-                    SpecifierKind::ExplicitNths(vec![5, 6]),
-                ))
-                .monthdays(Specifier::new(
-                    0,
-                    31,
-                    SpecifierKind::ExplicitNths(vec![0, 9, 19, 29]),
-                ))
+                .weekdays(SpecifierKind::ExplicitNths(vec![5, 6]))
+                .monthdays(SpecifierKind::ExplicitNths(vec![0, 9, 19, 29]))
                 .build()
                 .unwrap();
 
@@ -590,8 +571,8 @@ mod interval_tests {
         #[test]
         fn no_times() {
             let interval = IntervalBuilder::default()
-                .minutes(Specifier::new(0, 59, SpecifierKind::None))
-                .hours(Specifier::new(0, 23, SpecifierKind::None))
+                .minutes(SpecifierKind::None)
+                .hours(SpecifierKind::None)
                 .build()
                 .unwrap();
 
@@ -608,7 +589,7 @@ mod interval_tests {
         #[test]
         fn hourly() {
             let interval = IntervalBuilder::default()
-                .minutes(Specifier::new(0, 59, SpecifierKind::Nth(0)))
+                .minutes(SpecifierKind::Nth(0))
                 .build()
                 .unwrap();
 
@@ -632,80 +613,129 @@ mod interval_tests {
         fn all_datetimes() {
             let interval = IntervalBuilder::default().build().unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20).unwrap()
-                .and_hms_opt(18, 55, 19).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20)
+                .unwrap()
+                .and_hms_opt(18, 55, 19)
+                .unwrap();
             assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
-            let datetime = NaiveDate::from_ymd_opt(2001, 1, 1).unwrap()
-                .and_hms_opt(0, 0, 0).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(2001, 1, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
             assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
-            let datetime = NaiveDate::from_ymd_opt(2023, 8, 31).unwrap()
-                .and_hms_opt(23, 59, 59).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 31)
+                .unwrap()
+                .and_hms_opt(23, 59, 59)
+                .unwrap();
             assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
         }
 
         #[test]
         fn no_datetimes() {
             let interval = IntervalBuilder::default()
-                .minutes(Specifier::new(0, 59, SpecifierKind::None))
-                .months(Specifier::new(Month::January(), Month::December(), SpecifierKind::None))
-                .build().unwrap();
+                .minutes(SpecifierKind::None)
+                .months(SpecifierKind::None)
+                .build()
+                .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20).unwrap()
-                .and_hms_opt(18, 55, 19).unwrap();
-            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
-            let datetime = NaiveDate::from_ymd_opt(2001, 1, 1).unwrap()
-                .and_hms_opt(0, 0, 0).unwrap();
-            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
-            let datetime = NaiveDate::from_ymd_opt(2023, 8, 31).unwrap()
-                .and_hms_opt(23, 59, 59).unwrap();
-            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20)
+                .unwrap()
+                .and_hms_opt(18, 55, 19)
+                .unwrap();
+            assert_eq!(
+                interval.matches_datetime(datetime),
+                DateTimeMatch::DateNotMatched
+            );
+            let datetime = NaiveDate::from_ymd_opt(2001, 1, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
+            assert_eq!(
+                interval.matches_datetime(datetime),
+                DateTimeMatch::DateNotMatched
+            );
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 31)
+                .unwrap()
+                .and_hms_opt(23, 59, 59)
+                .unwrap();
+            assert_eq!(
+                interval.matches_datetime(datetime),
+                DateTimeMatch::DateNotMatched
+            );
         }
 
         #[test]
         fn wrong_date() {
             // matches each full hour of the first day of each month
             let interval = IntervalBuilder::default()
-                .minutes(Specifier::new(0, 59, SpecifierKind::First))
-                .monthdays(Specifier::new(0, 31, SpecifierKind::First))
-                .build().unwrap();
+                .minutes(SpecifierKind::First)
+                .monthdays(SpecifierKind::First)
+                .build()
+                .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20).unwrap()
-                .and_hms_opt(18, 55, 19).unwrap();
-            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
-            let datetime = NaiveDate::from_ymd_opt(2000, 9, 13).unwrap()
-                .and_hms_opt(18, 0, 19).unwrap();
-            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::DateNotMatched);
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 20)
+                .unwrap()
+                .and_hms_opt(18, 55, 19)
+                .unwrap();
+            assert_eq!(
+                interval.matches_datetime(datetime),
+                DateTimeMatch::DateNotMatched
+            );
+            let datetime = NaiveDate::from_ymd_opt(2000, 9, 13)
+                .unwrap()
+                .and_hms_opt(18, 0, 19)
+                .unwrap();
+            assert_eq!(
+                interval.matches_datetime(datetime),
+                DateTimeMatch::DateNotMatched
+            );
         }
 
         #[test]
         fn wrong_time() {
             // matches each full hour of the first day of each month
             let interval = IntervalBuilder::default()
-                .minutes(Specifier::new(0, 59, SpecifierKind::First))
-                .monthdays(Specifier::new(0, 31, SpecifierKind::First))
-                .build().unwrap();
+                .minutes(SpecifierKind::First)
+                .monthdays(SpecifierKind::First)
+                .build()
+                .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(1970, 5, 1).unwrap()
-                .and_hms_opt(18, 55, 19).unwrap();
-            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::TimeNotMatched);
-            let datetime = NaiveDate::from_ymd_opt(2000, 9, 1).unwrap()
-                .and_hms_opt(3, 17, 19).unwrap();
-            assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::TimeNotMatched);
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 1)
+                .unwrap()
+                .and_hms_opt(18, 55, 19)
+                .unwrap();
+            assert_eq!(
+                interval.matches_datetime(datetime),
+                DateTimeMatch::TimeNotMatched
+            );
+            let datetime = NaiveDate::from_ymd_opt(2000, 9, 1)
+                .unwrap()
+                .and_hms_opt(3, 17, 19)
+                .unwrap();
+            assert_eq!(
+                interval.matches_datetime(datetime),
+                DateTimeMatch::TimeNotMatched
+            );
         }
 
         #[test]
         fn correct_datetime() {
             // matches each full hour of the first day of each month
             let interval = IntervalBuilder::default()
-                .minutes(Specifier::new(0, 59, SpecifierKind::First))
-                .monthdays(Specifier::new(0, 31, SpecifierKind::First))
-                .build().unwrap();
+                .minutes(SpecifierKind::First)
+                .monthdays(SpecifierKind::First)
+                .build()
+                .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(1970, 5, 1).unwrap()
-                .and_hms_opt(18, 0, 19).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(1970, 5, 1)
+                .unwrap()
+                .and_hms_opt(18, 0, 19)
+                .unwrap();
             assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
-            let datetime = NaiveDate::from_ymd_opt(2000, 9, 1).unwrap()
-                .and_hms_opt(3, 0, 19).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(2000, 9, 1)
+                .unwrap()
+                .and_hms_opt(3, 0, 19)
+                .unwrap();
             assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
         }
     }
