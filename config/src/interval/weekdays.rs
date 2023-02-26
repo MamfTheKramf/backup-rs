@@ -57,7 +57,7 @@ impl Weekday {
     /// 
     /// # Example
     /// ```
-    /// use config::interval::weekdays::*;
+    /// use config::interval::*;
     /// 
     /// let today = Weekday::Monday();
     /// let tomorrow = today.tomorrow();
@@ -72,7 +72,7 @@ impl Weekday {
     /// 
     /// # Example
     /// ```
-    /// use config::interval::weekdays::*;
+    /// use config::interval::*;
     /// 
     /// let today = Weekday::Monday();
     /// let yesterday = today.yesterday();
@@ -95,7 +95,7 @@ impl From<u32> for Weekday {
     /// 
     /// # Example
     /// ```
-    /// use config::interval::weekdays::*;
+    /// use config::interval::*;
     /// 
     /// assert_eq!(Weekday::from(0), Weekday::Monday());
     /// assert_eq!(Weekday::from(5), Weekday::Saturday());

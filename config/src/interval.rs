@@ -2,6 +2,9 @@
 
 use std::ops::RangeInclusive;
 
+mod months;
+mod specifier;
+mod weekdays;
 mod date_time_match;
 
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
@@ -156,12 +159,12 @@ impl Interval {
     }
 
     /// Checks if the provided [NaiveTime] is matched by the interval
-    /// 
+    ///
     /// # Example
     /// ```
     /// use config::interval::*;
     /// use chrono::NaiveTime;
-    /// 
+    ///
     /// let interval = IntervalBuilder::default()
     ///     .minutes(Specifier::new(0, 59, SpecifierKind::Nth(30)))
     ///     .hours(Specifier::new(0, 23, SpecifierKind::Nth(12)))
@@ -609,16 +612,16 @@ mod interval_tests {
                 .build()
                 .unwrap();
 
-                let time = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
-                assert!(interval.matches_time(time));
-                let time = NaiveTime::from_hms_opt(13, 0, 30).unwrap();
-                assert!(interval.matches_time(time));
-                let time = NaiveTime::from_hms_opt(23, 0, 12).unwrap();
-                assert!(interval.matches_time(time));
-                let time = NaiveTime::from_hms_opt(23, 15, 12).unwrap();
-                assert!(!interval.matches_time(time));
-                let time = NaiveTime::from_hms_opt(1, 40, 12).unwrap();
-                assert!(!interval.matches_time(time));
+            let time = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
+            assert!(interval.matches_time(time));
+            let time = NaiveTime::from_hms_opt(13, 0, 30).unwrap();
+            assert!(interval.matches_time(time));
+            let time = NaiveTime::from_hms_opt(23, 0, 12).unwrap();
+            assert!(interval.matches_time(time));
+            let time = NaiveTime::from_hms_opt(23, 15, 12).unwrap();
+            assert!(!interval.matches_time(time));
+            let time = NaiveTime::from_hms_opt(1, 40, 12).unwrap();
+            assert!(!interval.matches_time(time));
         }
     }
 

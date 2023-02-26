@@ -90,7 +90,7 @@ impl From<u32> for Month {
     ///
     /// # Example
     /// ```
-    /// use config::interval::months::*;
+    /// use config::interval::*;
     /// 
     /// assert_eq!(Month::from(0), Month::January());
     /// assert_eq!(Month::from(7), Month::August());

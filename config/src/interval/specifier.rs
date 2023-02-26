@@ -21,7 +21,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(5 as u32, 15 as u32, SpecifierKind::None);
     /// for x in 5..=15 {
@@ -35,7 +35,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(11 as u32, 27 as u32, SpecifierKind::All);
     /// for x in 11..=27 {
@@ -49,7 +49,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(128 as u32, 256 as u32, SpecifierKind::First);
     /// for x in 128..=256 {
@@ -63,7 +63,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(0 as u32, 19 as u32, SpecifierKind::Last);
     /// for x in 0..=19 {
@@ -77,7 +77,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(0 as u32, 10 as u32, SpecifierKind::Nth(5));
     /// for x in 0..=10 {
@@ -91,7 +91,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(100 as u32, 1000 as u32, SpecifierKind::BackNth(200));
     /// for x in 100..=1000 {
@@ -105,7 +105,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(20 as u32, 50 as u32, SpecifierKind::ExplicitNths(vec![0, 10, 15, 30]));
     /// assert!(spec.matches(20));
@@ -124,7 +124,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(0 as u32, 6 as u32, SpecifierKind::EveryNth(2, 1));
     /// assert!(!spec.matches(0));
@@ -144,7 +144,7 @@ pub enum SpecifierKind {
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(128 as u32, 1024 as u32, SpecifierKind::ExplicitList(vec![128, 256, 512, 1024]));
     /// assert!(spec.matches(256));
@@ -177,7 +177,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let a = 0 as u32;
     /// let b = 10 as u32;
@@ -242,7 +242,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(20 as u32, 100 as u32, SpecifierKind::None);
     /// assert!(spec.is_in_range(20));
@@ -259,7 +259,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let spec = Specifier::new(10u32, 20u32, SpecifierKind::None);
     /// assert!(!spec.matches(11));
@@ -353,7 +353,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use config::interval::specifier::*;
+    /// use config::interval::*;
     ///
     /// let a = 0 as u32;
     /// let b = 10 as u32;
