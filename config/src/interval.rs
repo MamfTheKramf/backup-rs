@@ -7,7 +7,7 @@ mod months;
 mod specifier;
 mod weekdays;
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
+use chrono::{Datelike, Days, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use derive_builder::Builder;
 
 pub use self::{
@@ -229,6 +229,151 @@ impl Interval {
         }
 
         DateTimeMatch::Ok
+    }
+
+    /// Checks if any of the specifiers are [SpecifierKind::None]
+    pub fn has_none_specifier(&self) -> bool {
+        return self.minutes.kind() == &SpecifierKind::None
+            || self.hours.kind() == &SpecifierKind::None
+            || self.weekdays.kind() == &SpecifierKind::None
+            || self.monthdays.kind() == &SpecifierKind::None
+            || self.weeks.kind() == &SpecifierKind::None
+            || self.months.kind() == &SpecifierKind::None;
+    }
+
+    /// Returns the next matching time of day after the given time, if one exists.
+    /// All returned [NaiveTime]s have their seconds-value set to `0`.
+    ///
+    /// # Example
+    /// ```
+    /// use config::interval::*;
+    /// use chrono::NaiveTime;
+    ///
+    /// let noon = IntervalBuilder::default()
+    ///     .minutes(SpecifierKind::First)
+    ///     .hours(SpecifierKind::Nth(12))
+    ///     .build()
+    ///     .unwrap();
+    ///
+    /// let morning = NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+    /// assert_eq!(noon.next_daytime(morning).unwrap(), NaiveTime::from_hms_opt(12, 0, 0).unwrap());
+    ///
+    /// let afternoon = NaiveTime::from_hms_opt(15, 0, 0).unwrap();
+    /// assert!(noon.next_daytime(afternoon).is_none());
+    /// ```
+    pub fn next_daytime(&self, time: NaiveTime) -> Option<NaiveTime> {
+        let cyclic_next_match = self.cyclic_next_daytime(time)?;
+        if cyclic_next_match <= time {
+            return None;
+        }
+        Some(cyclic_next_match)
+    }
+
+    /// Returns the next matching time of the day or cycles to the next day if needed.
+    /// All returned [NaiveTime]s have their seconds-value set to `0`.
+    /// 
+    /// # Example
+    /// ```
+    /// use config::interval::*;
+    /// use chrono::NaiveTime;
+    ///
+    /// let noon = IntervalBuilder::default()
+    ///     .minutes(SpecifierKind::First)
+    ///     .hours(SpecifierKind::Nth(12))
+    ///     .build()
+    ///     .unwrap();
+    ///
+    /// let morning = NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+    /// assert_eq!(noon.cyclic_next_daytime(morning).unwrap(), NaiveTime::from_hms_opt(12, 0, 0).unwrap());
+    ///
+    /// let afternoon = NaiveTime::from_hms_opt(15, 0, 0).unwrap();
+    /// assert_eq!(noon.cyclic_next_daytime(afternoon).unwrap(), NaiveTime::from_hms_opt(12, 0, 0).unwrap());
+    /// ```
+    pub fn cyclic_next_daytime(&self, time: NaiveTime) -> Option<NaiveTime> {
+        let hour_matches = self.hours.matches(time.hour());
+
+        let next_minute = if hour_matches {
+            // we can try to find the next match in the same hour
+            self.minutes.cyclic_next(time.minute())?
+        } else {
+            // we have to cycle anyways
+            self.minutes.first_match()?
+        };
+
+        let next_hour = if hour_matches && next_minute > time.minute() {
+            // hour does match and we found a matching minute in this hour
+            time.hour()
+        } else {
+            self.hours.cyclic_next(time.hour())?
+        };
+
+        return NaiveTime::from_hms_opt(next_hour, next_minute, 0);
+    }
+
+    /// Tries to find the next matching [NaiveDateTime] after the provided `datetime`.
+    /// Only tries to find a match within 1 year from the provided `datetime`.
+    ///
+    /// The seconds-value of a returned value will always be `0`.
+    ///
+    /// # Returns
+    /// `Some` variant containing a [NaiveDateTime] representing the next matching `datetime` after the provided if one is found.
+    /// `None` if there is no matching datetime within the next year.
+    ///
+    /// # Example
+    /// ```
+    /// use config::interval::*;
+    /// use chrono::{ NaiveDate, NaiveTime };
+    ///
+    /// let first_of_month = IntervalBuilder::default()
+    ///     .minutes(SpecifierKind::First)
+    ///     .hours(SpecifierKind::First)
+    ///     .monthdays(SpecifierKind::First)
+    ///     .build()
+    ///     .unwrap();
+    /// let feb_1st = NaiveDate::from_ymd_opt(2003, 2, 1).unwrap()
+    ///     .and_hms_opt(0, 0, 0).unwrap();
+    /// assert_eq!(first_of_month.next_datetime(feb_1st).unwrap().date(), NaiveDate::from_ymd_opt(2003, 3, 1).unwrap());
+    ///
+    /// let daily = IntervalBuilder::default()
+    ///     .minutes(SpecifierKind::First)
+    ///     .hours(SpecifierKind::Nth(12))
+    ///     .build()
+    ///     .unwrap();
+    /// let noon = daily.next_datetime(feb_1st).unwrap();
+    /// assert_eq!(noon.date(), feb_1st.date());
+    /// assert_eq!(noon.time(), NaiveTime::from_hms_opt(12, 0, 0).unwrap());
+    /// ```
+    pub fn next_datetime(&self, datetime: NaiveDateTime) -> Option<NaiveDateTime> {
+        let date_matches = self.matches_date(datetime.date());
+
+        let next_time = if date_matches {
+            self.cyclic_next_daytime(datetime.time())?
+        } else {
+            self.cyclic_next_daytime(NaiveTime::from_hms_opt(23, 59, 59)?)?
+        };
+        println!("{:?}", next_time);
+        
+        let next_date = if date_matches && next_time > datetime.time() {
+            datetime.date()
+        } else {
+            let mut curr_date = datetime.date().checked_add_days(Days::new(1))?;
+            let mut matched_date = false;
+            for _ in 0..365 {
+                println!("{:?}", curr_date);
+                if self.matches_date(curr_date) {
+                    matched_date = true;
+                    break;
+                }
+
+                curr_date = curr_date.checked_add_days(Days::new(1))?;
+            }
+            if !matched_date {
+                return None;
+            }
+            curr_date
+        };
+
+        Some(next_date.and_time(next_time))
     }
 }
 
@@ -737,6 +882,306 @@ mod interval_tests {
                 .and_hms_opt(3, 0, 19)
                 .unwrap();
             assert_eq!(interval.matches_datetime(datetime), DateTimeMatch::Ok);
+        }
+    }
+
+    mod next_daytime_tests {
+        use super::*;
+
+        #[test]
+        fn no_match() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::None)
+                .build()
+                .unwrap();
+
+            let sandman_time = NaiveTime::from_hms_opt(19, 0, 0).unwrap();
+            assert!(interval.next_daytime(sandman_time).is_none());
+
+            let time = NaiveTime::from_hms_opt(18, 16, 0).unwrap();
+            assert!(interval.next_daytime(time).is_none());
+
+            let time = NaiveTime::from_hms_opt(18, 15, 0).unwrap();
+            assert!(interval.next_daytime(time).is_none());
+        }
+
+        #[test]
+        fn next_match_tomorrow() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let sandman_time = NaiveTime::from_hms_opt(19, 0, 0).unwrap();
+            assert!(interval.next_daytime(sandman_time).is_none());
+
+            let little_too_late = NaiveTime::from_hms_opt(18, 16, 0).unwrap();
+            assert!(interval.next_daytime(little_too_late).is_none());
+
+            let last_match = NaiveTime::from_hms_opt(18, 15, 0).unwrap();
+            assert!(interval.next_daytime(last_match).is_none());
+        }
+
+        #[test]
+        fn only_midnight() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::First)
+                .hours(SpecifierKind::First)
+                .build()
+                .unwrap();
+
+            let midnight = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
+            assert!(interval.next_daytime(midnight).is_none());
+            
+            let time = NaiveTime::from_hms_opt(14, 39, 55).unwrap();
+            assert!(interval.next_daytime(time).is_none());
+        }
+
+        #[test]
+        fn in_same_hour() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let time = NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+            assert_eq!(
+                interval.next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(6, 15, 0).unwrap()
+            );
+
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::EveryNth(10, 0))
+                .build()
+                .unwrap();
+            let time = NaiveTime::from_hms_opt(15, 35, 0).unwrap();
+            assert_eq!(
+                interval.next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(15, 40, 0).unwrap()
+            );
+        }
+
+        #[test]
+        fn no_hour_match() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let time = NaiveTime::from_hms_opt(7, 37, 0).unwrap();
+            assert_eq!(
+                interval.next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(12, 15, 0).unwrap()
+            );
+        }
+
+        #[test]
+        fn hour_match_next_hour() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let time = NaiveTime::from_hms_opt(6, 37, 0).unwrap();
+            assert_eq!(
+                interval.next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(12, 15, 0).unwrap()
+            );
+        }
+    }
+
+    mod cyclic_next_daytime_tests {
+        use super::*;
+
+        #[test]
+        fn no_match() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::None)
+                .build()
+                .unwrap();
+
+            let sandman_time = NaiveTime::from_hms_opt(19, 0, 0).unwrap();
+            assert!(interval.cyclic_next_daytime(sandman_time).is_none());
+
+            let time = NaiveTime::from_hms_opt(18, 16, 0).unwrap();
+            assert!(interval.cyclic_next_daytime(time).is_none());
+
+            let time = NaiveTime::from_hms_opt(18, 15, 0).unwrap();
+            assert!(interval.cyclic_next_daytime(time).is_none());
+        }
+
+        #[test]
+        fn next_match_tomorrow() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let sandman_time = NaiveTime::from_hms_opt(19, 0, 0).unwrap();
+            assert_eq!(interval.cyclic_next_daytime(sandman_time), NaiveTime::from_hms_opt(0, 15, 0));
+
+            let little_too_late = NaiveTime::from_hms_opt(18, 16, 0).unwrap();
+            assert_eq!(interval.cyclic_next_daytime(little_too_late), NaiveTime::from_hms_opt(0, 15, 0));
+
+            let last_match = NaiveTime::from_hms_opt(18, 15, 0).unwrap();
+            assert_eq!(interval.cyclic_next_daytime(last_match), NaiveTime::from_hms_opt(0, 15, 0));
+        }
+
+        #[test]
+        fn only_midnight() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::First)
+                .hours(SpecifierKind::First)
+                .build()
+                .unwrap();
+
+            let midnight = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
+            assert_eq!(interval.cyclic_next_daytime(midnight), NaiveTime::from_hms_opt(0, 0, 0));
+            
+            let time = NaiveTime::from_hms_opt(14, 39, 55).unwrap();
+            assert_eq!(interval.cyclic_next_daytime(time), NaiveTime::from_hms_opt(0, 0, 0));
+        }
+
+        #[test]
+        fn in_same_hour() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let time = NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+            assert_eq!(
+                interval.cyclic_next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(6, 15, 0).unwrap()
+            );
+
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::EveryNth(10, 0))
+                .build()
+                .unwrap();
+            let time = NaiveTime::from_hms_opt(15, 35, 0).unwrap();
+            assert_eq!(
+                interval.cyclic_next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(15, 40, 0).unwrap()
+            );
+        }
+
+        #[test]
+        fn no_hour_match() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let time = NaiveTime::from_hms_opt(7, 37, 0).unwrap();
+            assert_eq!(
+                interval.cyclic_next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(12, 15, 0).unwrap()
+            );
+        }
+
+        #[test]
+        fn hour_match_next_hour() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::Nth(15))
+                .hours(SpecifierKind::ExplicitNths(vec![0, 6, 12, 18]))
+                .build()
+                .unwrap();
+
+            let time = NaiveTime::from_hms_opt(6, 37, 0).unwrap();
+            assert_eq!(
+                interval.cyclic_next_daytime(time).unwrap(),
+                NaiveTime::from_hms_opt(12, 15, 0).unwrap()
+            );
+        }
+    }
+
+    mod next_datetime_tests {
+        use super::*;
+
+        #[test]
+        fn no_match() {
+            let interval = IntervalBuilder::default()
+                .weekdays(SpecifierKind::None)
+                .build()
+                .unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(2023, 9, 9).unwrap()
+                .and_hms_opt(12, 40, 29).unwrap();
+            assert!(interval.next_datetime(datetime).is_none());
+
+            let datetime = NaiveDate::from_ymd_opt(1990, 1, 31).unwrap()
+                .and_hms_opt(0, 12, 18).unwrap();
+            assert!(interval.next_datetime(datetime).is_none());
+        }
+
+        #[test]
+        fn not_within_a_year() {
+            let interval = IntervalBuilder::default()
+                .monthdays(SpecifierKind::Nth(28))
+                .months(SpecifierKind::Nth(1))
+                .build()
+                .unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(2021, 4, 8).unwrap()
+                .and_hms_opt(0, 0, 0).unwrap();
+            assert!(interval.next_datetime(datetime).is_none());
+        }
+
+        #[test]
+        fn valid_interval() {
+            let interval = IntervalBuilder::default()
+                .monthdays(SpecifierKind::Nth(28))
+                .months(SpecifierKind::Nth(1))
+                .build()
+                .unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(2020, 2, 20).unwrap()
+                .and_hms_opt(0, 0, 0).unwrap();
+            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2020, 2, 29).unwrap().and_hms_opt(0, 0, 0));
+            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8).unwrap()
+                .and_hms_opt(0, 0, 0).unwrap();
+            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2020, 2, 29).unwrap().and_hms_opt(0, 0, 0));
+            let datetime = NaiveDate::from_ymd_opt(2020, 1, 5).unwrap()
+                .and_hms_opt(20, 55, 36).unwrap();
+            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2020, 2, 29).unwrap().and_hms_opt(0, 0, 0));
+        }
+
+        #[test]
+        fn same_day() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::First)
+                .build()
+                .unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8).unwrap()
+                .and_hms_opt(0, 0, 0).unwrap();
+            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2019, 4, 8).unwrap().and_hms_opt(1, 0, 0));
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 5).unwrap()
+                .and_hms_opt(20, 35, 55).unwrap();
+            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2023, 8, 5).unwrap().and_hms_opt(21, 0, 0));
+        }
+
+        #[test]
+        fn next_day() {
+            let interval = IntervalBuilder::default()
+                .minutes(SpecifierKind::First)
+                .build()
+                .unwrap();
+
+            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8).unwrap()
+                .and_hms_opt(23, 0, 0).unwrap();
+            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2019, 4, 9).unwrap().and_hms_opt(0, 0, 0));
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 5).unwrap()
+                .and_hms_opt(23, 35, 55).unwrap();
+            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2023, 8, 6).unwrap().and_hms_opt(0, 0, 0));
         }
     }
 }
