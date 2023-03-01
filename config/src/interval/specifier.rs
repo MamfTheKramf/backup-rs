@@ -260,10 +260,10 @@ where
     /// # Example
     /// ```
     /// use config::interval::*;
-    /// let spec = Specifier::new(10u32m 20u32, SpecifierKind::EveryNth(5, 5));
+    /// let spec = Specifier::new(10u32, 20u32, SpecifierKind::EveryNth(5, 5));
     /// assert_eq!(spec.first_match().unwrap(), 15);
     /// 
-    /// let spec = Specifier::new(10u32, 20u32, SPecifierKind::EveryNth(100, 400));
+    /// let spec = Specifier::new(10u32, 20u32, SpecifierKind::EveryNth(100, 400));
     /// assert!(spec.first_match().is_none());
     /// ```
     pub fn first_match(&self) -> Option<T> {
