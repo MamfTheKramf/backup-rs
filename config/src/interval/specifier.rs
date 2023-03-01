@@ -255,6 +255,21 @@ where
         self.min.into() <= x.into() && self.max.into() >= x.into()
     }
 
+    /// Returns the first (smallest) element from the range that is matched, ot none if there is no match
+    /// 
+    /// # Example
+    /// ```
+    /// use config::interval::*;
+    /// let spec = Specifier::new(10u32m 20u32, SpecifierKind::EveryNth(5, 5));
+    /// assert_eq!(spec.first_match().unwrap(), 15);
+    /// 
+    /// let spec = Specifier::new(10u32, 20u32, SPecifierKind::EveryNth(100, 400));
+    /// assert!(spec.first_match().is_none());
+    /// ```
+    pub fn first_match(&self) -> Option<T> {
+        self.cyclic_next(self.max)
+    }
+
     /// Returns if `x` is matches by the given specifier-rule
     ///
     /// # Example
@@ -530,6 +545,43 @@ mod specifier_tests {
             println!("{:?}", dedupped);
             let spec = Specifier::new(min, max, SpecifierKind::ExplicitList(values));
             assert_eq!(spec.kind(), &SpecifierKind::ExplicitList(dedupped));
+        }
+    }
+
+    mod first_match_tests {
+        use super::*;
+
+        #[test]
+        fn no_matches() {
+            let spec = Specifier::new(0u32, 100u32, SpecifierKind::None);
+            assert!(spec.first_match().is_none());
+
+            let spec = Specifier::new(55u32, 77u32, SpecifierKind::ExplicitList(vec![0, 7, 35]));
+            assert!(spec.first_match().is_none());
+        }
+
+        #[test]
+        fn first_match_is_min() {
+            let spec = Specifier::new(0u32, 10u32, SpecifierKind::All);
+            assert_eq!(spec.first_match().unwrap(), 0);
+
+            let spec = Specifier::new(4328u32, 9999u32, SpecifierKind::EveryNth(2, 0));
+            assert_eq!(spec.first_match().unwrap(), 4328);
+        }
+
+        #[test]
+        fn first_match_is_max() {
+            let spec = Specifier::new(4328u32, 9999u32, SpecifierKind::BackNth(0));
+            assert_eq!(spec.first_match().unwrap(), 9999);
+
+            let spec = Specifier::new(12u32, 7000u32, SpecifierKind::ExplicitList(vec![7000]));
+            assert_eq!(spec.first_match().unwrap(), 7000);
+        }
+
+        #[test]
+        fn valid_first_match() {
+            let spec = Specifier::new(7u32, 100u32, SpecifierKind::ExplicitList(vec![19, 28, 99]));
+            assert_eq!(spec.first_match().unwrap(), 19);
         }
     }
 
