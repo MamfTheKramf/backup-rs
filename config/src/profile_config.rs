@@ -19,8 +19,14 @@ pub struct ProfileConfig {
     pub target_dir: PathBuf,
     /// Paths to files to include in backup
     pub files_to_include: Vec<PathBuf>,
+    /// Paths to dirs to include in backup
+    pub dirs_to_include: Vec<PathBuf>,
+    /// Paths to files to exclude from backup. Only add files here if they would otherwise be included because of `dirs_to_include`.
+    pub files_to_exclude: Vec<PathBuf>,
+    /// Paths to dirs to exclude from backup. Only add files here if they would otherwise be included because of `dirs_to_include`.
+    pub dirs_to_exclude: Vec<PathBuf>,
     /// Interval specifying when to make the next backup
-    pub interval: Interval, // TODO
+    pub interval: Interval,
 }
 
 impl ProfileConfig {
@@ -31,8 +37,11 @@ impl ProfileConfig {
     /// - `config_file_dir`: Directory in which to place this config when stored. Do NOT provide a filename. This will be done automatically,
     /// - `target_dir`: Directory to place backup files in,
     /// - `files_to_include`: List of files to include in backup,
+    /// - `dirs_to_include`: List of dirs to include in backup,
+    /// - `files_to_exclude`: List of files to exclude from backup,
+    /// - `dirs_to_exclude`: List of dirs to exclude from backup,
     /// - `interval`: Interval specifying when to make the next backup.
-    pub fn new(name: String, config_file_dir: PathBuf, target_dir: PathBuf, files_to_include: Vec<PathBuf>, interval: Interval) -> ProfileConfig {
+    pub fn new(name: String, config_file_dir: PathBuf, target_dir: PathBuf, files_to_include: Vec<PathBuf>, dirs_to_include: Vec<PathBuf>, files_to_exclude: Vec<PathBuf>, dirs_to_exclude: Vec<PathBuf>, interval: Interval) -> ProfileConfig {
         let uuid = Uuid::new_v4();
         let config_file = Self::dir_uuid_to_file(config_file_dir, uuid);
         ProfileConfig {
@@ -41,6 +50,9 @@ impl ProfileConfig {
             config_file,
             target_dir,
             files_to_include,
+            dirs_to_include,
+            files_to_exclude,
+            dirs_to_exclude,
             interval
         }
     }
@@ -109,7 +121,7 @@ mod profile_config_tests {
         let config_file_dir = PathBuf::from("hi");
         let target_file_dir = PathBuf::from("ho");
         let interval = IntervalBuilder::default().build().unwrap();
-        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], interval);
+        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], vec![], vec![], vec![], interval);
         assert_eq!(config.name, name);
         assert_eq!(config.get_config_file().file_name().unwrap().to_str().unwrap(), format!("{}.json", config.get_uuid().as_hyphenated()));
     }
@@ -120,7 +132,7 @@ mod profile_config_tests {
         let config_file_dir = PathBuf::from("test_tmp");
         let target_file_dir = PathBuf::from("ho");
         let interval = IntervalBuilder::default().build().unwrap();
-        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], interval);
+        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], vec![], vec![], vec![], interval);
         assert!(config.store().is_ok());
         delete_file(config.get_config_file().clone());
     }

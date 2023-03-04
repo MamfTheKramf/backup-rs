@@ -4,6 +4,9 @@
   "config_file": "test_tmp/001a828a-30ca-4b12-9756-6ce9696ac868.json",
   "target_dir": "ho",
   "files_to_include": [],
+  "dirs_to_include": [],
+  "files_to_exclude": [],
+  "dirs_to_exclude": [],
   "interval": {
     "minutes": {
       "min": 0,
