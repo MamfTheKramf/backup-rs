@@ -1,10 +1,12 @@
 //! Contains [Specifier] Struct that can be used to specify certain numbers from a range.
 //! For example, can be used to always take the first or the last or every `n`-th with an offset.
 
+use serde::{Serialize, Deserialize};
+
 /// Represents a specifier.
 /// Has a range of possible values and a specifier rule that filters out all none-specified values in that range.
 /// The represented range is inclusive. I.e., `min` and `max` can be matched by the specifier-rule as well.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Specifier<T>
 where
     T: Into<u32> + From<u32> + Copy,
@@ -15,7 +17,7 @@ where
 }
 
 /// Represents the kind of specifier to mathc elements from a range.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum SpecifierKind {
     /// Maches no element from range.
     ///

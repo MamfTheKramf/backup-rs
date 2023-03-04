@@ -1,12 +1,14 @@
 //! Contains struct for Weekdays
 
+use serde::{Serialize, Deserialize};
+
 /// Number of weekdays.
 /// `N-1` is the largest number, a `try_from` will work with.
 pub const N: u8 = 7;
 
 /// Struct for representing a Weekday.
 /// Allows to associate numbers with days of the week starting with Monday as 0 and ending with Sunday as 6
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct Weekday {
     day: u8
 }

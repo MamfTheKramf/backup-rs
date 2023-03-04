@@ -9,6 +9,7 @@ mod weekdays;
 
 use chrono::{Datelike, Days, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use derive_builder::Builder;
+use serde::{Serialize, Deserialize};
 
 pub use self::{
     date_time_match::DateTimeMatch,
@@ -23,7 +24,7 @@ pub use self::{
 /// If weekdays and monthdays are both not [SpecifierKind::All], then only one of them has to match.
 ///
 /// Weeknumbers are handles as [ISO-Weeks](https://en.wikipedia.org/wiki/ISO_week_date). I.e., the first week with 4 days or mor in a year is week 0.
-#[derive(Builder)]
+#[derive(Debug, Builder, Serialize, Deserialize)]
 pub struct Interval {
     /// Range 0-59
     #[builder(

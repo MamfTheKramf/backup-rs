@@ -1,12 +1,14 @@
 //! Contains struct for Months
 
+use serde::{Serialize, Deserialize};
+
 /// Number of months.
 /// `N-1` is the largest number, a `try_from` will work with.
 pub const N: u8 = 12;
 
 /// Struct for representing a Month.
 /// Allows to associate numbers with days of the week starting with January as 0 and ending with December as 12
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct Month {
     month: u8
 }
