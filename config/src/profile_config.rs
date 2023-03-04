@@ -4,8 +4,7 @@ use std::{path::PathBuf, fs::{OpenOptions, File}, io::{Error, BufWriter, BufRead
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-type IntervalType = u32;
+use crate::interval::*;
 
 /// Struct representing a profile configuration.
 #[derive(Debug, Deserialize, Serialize)]
@@ -21,7 +20,7 @@ pub struct ProfileConfig {
     /// Paths to files to include in backup
     pub files_to_include: Vec<PathBuf>,
     /// Interval specifying when to make the next backup
-    pub interval: IntervalType, // TODO
+    pub interval: Interval, // TODO
 }
 
 impl ProfileConfig {
@@ -33,7 +32,7 @@ impl ProfileConfig {
     /// - `target_dir`: Directory to place backup files in,
     /// - `files_to_include`: List of files to include in backup,
     /// - `interval`: Interval specifying when to make the next backup.
-    pub fn new(name: String, config_file_dir: PathBuf, target_dir: PathBuf, files_to_include: Vec<PathBuf>, interval: IntervalType) -> ProfileConfig {
+    pub fn new(name: String, config_file_dir: PathBuf, target_dir: PathBuf, files_to_include: Vec<PathBuf>, interval: Interval) -> ProfileConfig {
         let uuid = Uuid::new_v4();
         let config_file = Self::dir_uuid_to_file(config_file_dir, uuid);
         ProfileConfig {
@@ -109,7 +108,8 @@ mod profile_config_tests {
         let name = "Hutzi".to_string();
         let config_file_dir = PathBuf::from("hi");
         let target_file_dir = PathBuf::from("ho");
-        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], 0);
+        let interval = IntervalBuilder::default().build().unwrap();
+        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], interval);
         assert_eq!(config.name, name);
         assert_eq!(config.get_config_file().file_name().unwrap().to_str().unwrap(), format!("{}.json", config.get_uuid().as_hyphenated()));
     }
@@ -119,7 +119,8 @@ mod profile_config_tests {
         let name = "Hutzi".to_string();
         let config_file_dir = PathBuf::from("test_tmp");
         let target_file_dir = PathBuf::from("ho");
-        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], 0);
+        let interval = IntervalBuilder::default().build().unwrap();
+        let config = ProfileConfig::new(name.clone(), config_file_dir.clone(), target_file_dir.clone(), vec![], interval);
         assert!(config.store().is_ok());
         delete_file(config.get_config_file().clone());
     }

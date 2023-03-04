@@ -4,5 +4,44 @@
   "config_file": "test_tmp/001a828a-30ca-4b12-9756-6ce9696ac868.json",
   "target_dir": "ho",
   "files_to_include": [],
-  "interval": 0
+  "interval": {
+    "minutes": {
+      "min": 0,
+      "max": 59,
+      "kind": "All"
+    },
+    "hours": {
+      "min": 0,
+      "max": 23,
+      "kind": "All"
+    },
+    "weekdays": {
+      "min": {
+        "day": 0
+      },
+      "max": {
+        "day": 6
+      },
+      "kind": "All"
+    },
+    "monthdays": {
+      "min": 0,
+      "max": 31,
+      "kind": "All"
+    },
+    "weeks": {
+      "min": 0,
+      "max": 52,
+      "kind": "All"
+    },
+    "months": {
+      "min": {
+        "month": 0
+      },
+      "max": {
+        "month": 11
+      },
+      "kind": "All"
+    }
+  }
 }
