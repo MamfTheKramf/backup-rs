@@ -108,7 +108,6 @@ mod profile_config_tests {
     #[test]
     fn new_test() {
         let name = "Hutzi".to_string();
-        let config_file_dir = PathBuf::from("hi");
         let target_file_dir = PathBuf::from("ho");
         let interval = IntervalBuilder::default().build().unwrap();
         let config = ProfileConfig::new(name.clone(), target_file_dir.clone(), vec![], vec![], vec![], vec![], interval);
