@@ -1,0 +1,49 @@
+{
+  "name": "Hutzi",
+  "uuid": "25c81c5c-5595-486b-a504-f40839ffb6af",
+  "target_dir": "ho",
+  "files_to_include": [],
+  "dirs_to_include": [],
+  "files_to_exclude": [],
+  "dirs_to_exclude": [],
+  "interval": {
+    "minutes": {
+      "min": 0,
+      "max": 59,
+      "kind": "All"
+    },
+    "hours": {
+      "min": 0,
+      "max": 23,
+      "kind": "All"
+    },
+    "weekdays": {
+      "min": {
+        "day": 0
+      },
+      "max": {
+        "day": 6
+      },
+      "kind": "All"
+    },
+    "monthdays": {
+      "min": 0,
+      "max": 31,
+      "kind": "All"
+    },
+    "weeks": {
+      "min": 0,
+      "max": 52,
+      "kind": "All"
+    },
+    "months": {
+      "min": {
+        "month": 0
+      },
+      "max": {
+        "month": 11
+      },
+      "kind": "All"
+    }
+  }
+}
