@@ -12,11 +12,11 @@ use clap::{ ArgGroup, Parser };
 pub struct Args {
     /// Name of Profile to check.
     #[arg(short, long)]
-    name: Option<String>,
+    pub name: Option<String>,
 
     /// Uuid of Profile to check.
     #[arg(short, long)]
-    uuid: Option<String>,
+    pub uuid: Option<String>,
 }
 
 /// Parses cli-args and returns them.
