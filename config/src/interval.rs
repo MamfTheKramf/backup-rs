@@ -312,7 +312,7 @@ impl Interval {
     }
 
     /// Tries to find the next matching [NaiveDateTime] after the provided `datetime`.
-    /// Only tries to find a match within 1 year from the provided `datetime`.
+    /// Only tries to find a match within 1 year (365 days) from the provided `datetime`.
     ///
     /// The seconds-value of a returned value will always be `0`.
     ///
@@ -352,7 +352,6 @@ impl Interval {
         } else {
             self.cyclic_next_daytime(NaiveTime::from_hms_opt(23, 59, 59)?)?
         };
-        println!("{:?}", next_time);
         
         let next_date = if date_matches && next_time > datetime.time() {
             datetime.date()
@@ -360,7 +359,6 @@ impl Interval {
             let mut curr_date = datetime.date().checked_add_days(Days::new(1))?;
             let mut matched_date = false;
             for _ in 0..365 {
-                println!("{:?}", curr_date);
                 if self.matches_date(curr_date) {
                     matched_date = true;
                     break;
