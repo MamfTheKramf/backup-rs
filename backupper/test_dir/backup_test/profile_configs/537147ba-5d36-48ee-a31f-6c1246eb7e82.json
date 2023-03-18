@@ -1,0 +1,52 @@
+{
+    "name": "Hutzi",
+    "uuid": "537147ba-5d36-48ee-a31f-6c1246eb7e82",
+    "target_dir": "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\target_dir",
+    "files_to_include": [],
+    "dirs_to_include": [
+        "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir1"
+    ],
+    "files_to_exclude": [],
+    "dirs_to_exclude": [],
+    "interval": {
+      "minutes": {
+        "min": 0,
+        "max": 59,
+        "kind": "All"
+      },
+      "hours": {
+        "min": 0,
+        "max": 23,
+        "kind": "All"
+      },
+      "weekdays": {
+        "min": {
+          "day": 0
+        },
+        "max": {
+          "day": 6
+        },
+        "kind": "All"
+      },
+      "monthdays": {
+        "min": 0,
+        "max": 31,
+        "kind": "All"
+      },
+      "weeks": {
+        "min": 0,
+        "max": 52,
+        "kind": "All"
+      },
+      "months": {
+        "min": {
+          "month": 0
+        },
+        "max": {
+          "month": 11
+        },
+        "kind": "All"
+      }
+    },
+    "next_backup": "2023-03-07T20:34:25.471691500"
+  }

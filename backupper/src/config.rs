@@ -6,15 +6,16 @@ use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
 
 use crate::cli_args::Args;
 
-const GENERAL_CONFIG_PATH: &'static str = "./test_dir/general_config.json";
+const GENERAL_CONFIG_PATH: &'static str = "./general_config.json";
 
-/// Loads the general Config file.
+/// Loads the general config file.
+/// Either from the provided `path` or from [GENERAL_CONFIG_PATH] if `path` is [None]
 ///
 /// # Returns
 /// [Result::Ok] containing the config if it could be loaded.
 /// [Result::Err] containing a [String] describing the issue if some occured.
-pub fn load_general_config() -> Result<GeneralConfig, String> {
-    let path = PathBuf::from(GENERAL_CONFIG_PATH);
+pub fn load_general_config(path: Option<&str>) -> Result<GeneralConfig, String> {
+    let path = PathBuf::from(path.unwrap_or(GENERAL_CONFIG_PATH));
 
     match path.try_exists() {
         Ok(val) => {
@@ -140,6 +141,7 @@ pub fn soft_load_profile_configs(
 /// 
 /// Is a hard fail in such a way that it will return an [Err] as soon as one [ProfileConfig] fails.
 /// If you want a soft fail that simply skips the broken files and continues to try the others, use [soft_load_profile_configs].
+#[allow(dead_code)]
 pub fn hard_load_profile_configs(
     general_config: &GeneralConfig,
     cli_args: &Args
@@ -230,7 +232,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: None };
+            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
             assert!(soft_load_profile_configs(&config, &args).is_err());
 
             let path = PathBuf::from("./Cargo.toml");
@@ -246,7 +248,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: None };
+            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
             let configs = soft_load_profile_configs(&config, &args).unwrap();
 
             assert_eq!(configs.len(), 5);
@@ -258,7 +260,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: Some(String::from("Hutzi")), uuid: None };
+            let args = Args{ general_config: String::from(""), name: Some(String::from("Hutzi")), uuid: None, verbose: false };
             let configs = soft_load_profile_configs(&config, &args).unwrap();
 
             assert_eq!(configs.len(), 3);
@@ -270,7 +272,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")) };
+            let args = Args{ general_config: String::from(""), name: None, uuid: Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")), verbose: false };
             let configs = soft_load_profile_configs(&config, &args).unwrap();
 
             assert_eq!(configs.len(), 1);
@@ -282,7 +284,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: None };
+            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
             let configs = soft_load_profile_configs(&config, &args).unwrap();
 
             assert_eq!(configs.len(), 2);
@@ -298,7 +300,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: None };
+            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
             assert!(hard_load_profile_configs(&config, &args).is_err());
 
             let path = PathBuf::from("./Cargo.toml");
@@ -314,7 +316,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: None };
+            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
             let configs = hard_load_profile_configs(&config, &args).unwrap();
 
             assert_eq!(configs.len(), 5);
@@ -326,7 +328,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: Some(String::from("Hutzi")), uuid: None };
+            let args = Args{ general_config: String::from(""), name: Some(String::from("Hutzi")), uuid: None, verbose: false };
             let configs = hard_load_profile_configs(&config, &args).unwrap();
 
             assert_eq!(configs.len(), 3);
@@ -338,7 +340,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")) };
+            let args = Args{ general_config: String::from(""), name: None, uuid: Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")), verbose: false };
             let configs = hard_load_profile_configs(&config, &args).unwrap();
 
             assert_eq!(configs.len(), 1);
@@ -350,7 +352,7 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ name: None, uuid: None };
+            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
             let configs = hard_load_profile_configs(&config, &args);
 
             assert!(configs.is_err());
