@@ -98,7 +98,20 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     
     // add all directories
     for dir in &profile_config.dirs_to_include {
-        add_directory(&mut zip, &mut file_map, dir, profile_config, args)?;
+        if let Err(msg) = add_directory(&mut zip, &mut file_map, dir, profile_config, args) {
+            if args.verbose {
+                println!("Couldn't add dir {:?} because {:?}", dir, msg);
+            }
+        }
+    }
+
+    // add all files
+    for file in &profile_config.files_to_include {
+        if let Err(msg) = add_file(&mut zip, &mut file_map, file, profile_config, args) {
+            if args.verbose {
+                println!("Couldn't add file {:?} because {:?}", file, msg);
+            }
+        }
     }
 
     if let Err(msg) = write_file_map(&mut zip, file_map) {
@@ -182,6 +195,32 @@ fn add_directory(zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathB
         }
     }
     Ok(())
+}
+
+/// Attempts to add file at the given path to the archive.
+fn add_file(zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathBuf>, file: &PathBuf, profile_config: &ProfileConfig, args: &Args) -> Result<(), String> {
+    if !file.is_file() {
+        return Err(format!("{:?} is not a file!", file));
+    }
+
+    if profile_config.is_excluded(file) || profile_config.in_included_dirs(file) {
+        if args.verbose {
+            println!("File {:?} is either excluded or already covered by included dirs.", file);
+        }
+        return Ok(())
+    }
+
+    match write_to_zip(file, zip, file_map, args) {
+        Ok(_) => Ok(()),
+        Err((uuid, msg)) => {
+            // there doesn't seem to be a proper way to remove files from an archive yet
+            // --> simply remove the entry from the map and hope that we're not wasting too much space.
+            if let Some(uuid) = uuid {
+                file_map.remove(&uuid);
+            }
+            Err(msg)
+        }
+    }
 }
 
 /// Attempts to write the file at the specified `path` to the `zip`.
