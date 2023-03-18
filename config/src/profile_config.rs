@@ -88,6 +88,7 @@ impl ProfileConfig {
         let file_path = Self::dir_uuid_to_file(dir_path, self.uuid);
         let file = OpenOptions::new()
             .write(true)
+            .truncate(true)
             .create(true)
             .open(&file_path)?;
         let writer = BufWriter::new(file);
