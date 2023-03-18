@@ -45,6 +45,7 @@ pub fn handle_profile(profile_config: &mut ProfileConfig, general_config: &Gener
     if skipped_match {
         if let Err(msg) = perform_backup(profile_config, args) {
             println!("{}", msg);
+            return;
         }
     }
 
@@ -84,7 +85,7 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     let mut file_map = HashMap::new();
     
     // set up zip archive
-    let filename = chrono::offset::Local::now().naive_local().format("%Y-%m-%d_%H-%M").to_string();
+    let filename = chrono::offset::Local::now().naive_local().format("%Y-%m-%d_%H-%M").to_string() + ".zip";
     let path = profile_config.target_dir.as_path().join(filename);
     let file = match OpenOptions::new()
         .write(true)
@@ -99,7 +100,32 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     for dir in &profile_config.dirs_to_include {
         add_directory(&mut zip, &mut file_map, dir, profile_config, args)?;
     }
+
+    if let Err(msg) = write_file_map(&mut zip, file_map) {
+        remove_archive(zip, path);
+        return Err(msg);
+    }
+    if args.verbose {
+        println!("Added file_map to archive");
+    }
+
+    if let Err(err) = zip.finish() {
+        remove_archive(zip, path);
+        return Err(format!("Couldn't finish archive because of {:?}", err));
+    }
+
+    if args.verbose {
+        println!("Finished archive in {:?}", path);
+    }
     Ok(())
+}
+
+/// Attempts to remove started zip-archive from filesystem.
+/// You call this after an unrecoverable error occured, to clean up
+#[allow(unused_must_use)]
+fn remove_archive(mut zip: ZipWriter<File>, path: PathBuf) {
+    zip.finish();
+    fs::remove_file(path);
 }
 
 /// Checks if the target directory specified in [ProfileConfig] is writable or not.
@@ -195,12 +221,27 @@ fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, file_map: &mut HashMa
         }
     }
 
-    if let Err(err) = zip.finish() {
-        return Err((Some(uuid), format!("Couldn't finish file {:?} because of {:?}", path, err)));
-    }
-
     if args.verbose {
         println!("Successfully added {:?} to archive.", path);
+    }
+    Ok(())
+}
+
+/// Writes a serialized version of `file_map` into `zip`.
+/// 
+/// Returns an [Err] explaining the issue if something goes wrong.
+fn write_file_map(zip: &mut ZipWriter<File>, file_map: HashMap<String, PathBuf>) -> Result<(), String> {
+    if let Err(err) = zip.start_file("file_map", FileOptions::default()) {
+        return Err(format!("Couldn't start file for file_map because {:?}", err));
+    }
+
+    let mut bytes = match serde_json::to_vec(&file_map) {
+        Ok(bytes) => bytes,
+        Err(err) => return Err(format!("Couldn't serialize file_map because {:?}", err)),
+    };
+
+    if let Err(err) = zip.write_all(bytes.as_mut_slice()) {
+        return Err(format!("Couldn't write file_map because {:?}", err));
     }
     Ok(())
 }
