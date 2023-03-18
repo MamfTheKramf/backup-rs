@@ -2,12 +2,18 @@
     "name": "Hutzi",
     "uuid": "537147ba-5d36-48ee-a31f-6c1246eb7e82",
     "target_dir": "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\target_dir",
-    "files_to_include": [],
+    "files_to_include": [
+      "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir2\\fusch2.txt"
+    ],
     "dirs_to_include": [
         "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir1"
     ],
-    "files_to_exclude": [],
-    "dirs_to_exclude": [],
+    "files_to_exclude": [
+      "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir1\\dir1_1\\excluded.txt"
+    ],
+    "dirs_to_exclude": [
+      "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir1\\dir1_2"
+    ],
     "interval": {
       "minutes": {
         "min": 0,
