@@ -85,7 +85,7 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     let mut file_map = HashMap::new();
     
     // set up zip archive
-    let filename = chrono::offset::Local::now().naive_local().format("%Y-%m-%d_%H-%M").to_string() + ".zip";
+    let filename = profile_config.get_uuid().as_hyphenated().to_string() + &chrono::offset::Local::now().naive_local().format("%Y-%m-%d_%H-%M").to_string() + ".zip";
     let path = profile_config.target_dir.as_path().join(filename);
     let file = match OpenOptions::new()
         .write(true)
