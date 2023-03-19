@@ -1,6 +1,6 @@
 //! Contains functions for actually creating a backup file.
 
-use std::{fs::{self, OpenOptions, File}, path::PathBuf, collections::HashMap, io::{Read, Write}};
+use std::{fs::{self, OpenOptions, File}, path::PathBuf, io::{Read, Write}};
 
 use chrono::offset;
 use config::{profile_config::ProfileConfig, interval::DateTimeMatch, general_config::GeneralConfig};
