@@ -187,9 +187,13 @@ fn add_file(zip: &mut ZipWriter<File>, file: &PathBuf, profile_config: &ProfileC
         return Err(format!("{:?} is not a file!", file));
     }
 
-    if profile_config.is_excluded(file) || profile_config.in_included_dirs(file) {
+    // included files shall overwrite the excluded files,
+    // but it should not be added again, if it was already coverd by an included dir
+    // --> if it is in an included dir, it might have not been added since is is also in an excluded dir
+    //      --> add that file
+    if profile_config.in_included_dirs(file) && !profile_config.is_excluded(file) {
         if args.verbose {
-            println!("File {:?} is either excluded or already covered by included dirs.", file);
+            println!("File {:?} is already covered by included dirs.", file);
         }
         return Ok(())
     }
