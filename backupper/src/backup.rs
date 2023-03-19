@@ -65,7 +65,7 @@ pub fn handle_profile(profile_config: &mut ProfileConfig, general_config: &Gener
 /// 1. If the target directory for the zip archive is accesible and opens retry dialog boxes until it is accesibly, or the backup is cancelled.
 /// 2. Creates a file for the zip archive.
 /// 3. Recursively goes through directories to include and adds each file, not matched by the excluded files to the archive
-/// 4. Goes through the files to include and adds each file, not matched by the excluded files or included dirs to the archive
+/// 4. Goes through the files to include and adds each file, not matched by the included dirs to the archive
 /// 5. Stores zip an exits
 fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::Result<(), String> {
     // if target dir isn't available, open dialog
@@ -80,9 +80,6 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     }
 
     // now the target dir should be available
-
-    // create file for zip archive
-    let mut file_map = HashMap::new();
     
     // set up zip archive
     let filename = profile_config.get_uuid().as_hyphenated().to_string() + &chrono::offset::Local::now().naive_local().format("%Y-%m-%d_%H-%M").to_string() + ".zip";
@@ -98,7 +95,7 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     
     // add all directories
     for dir in &profile_config.dirs_to_include {
-        if let Err(msg) = add_directory(&mut zip, &mut file_map, dir, profile_config, args) {
+        if let Err(msg) = add_directory(&mut zip, dir, profile_config, args) {
             if args.verbose {
                 println!("Couldn't add dir {:?} because {:?}", dir, msg);
             }
@@ -107,19 +104,11 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
 
     // add all files
     for file in &profile_config.files_to_include {
-        if let Err(msg) = add_file(&mut zip, &mut file_map, file, profile_config, args) {
+        if let Err(msg) = add_file(&mut zip, file, profile_config, args) {
             if args.verbose {
                 println!("Couldn't add file {:?} because {:?}", file, msg);
             }
         }
-    }
-
-    if let Err(msg) = write_file_map(&mut zip, file_map) {
-        remove_archive(zip, path);
-        return Err(msg);
-    }
-    if args.verbose {
-        println!("Added file_map to archive");
     }
 
     if let Err(err) = zip.finish() {
@@ -150,7 +139,7 @@ fn is_target_dir_available(profile_config: &ProfileConfig) -> bool {
 }
 
 /// Walks through the given `dir` and adds all files not excluded to the zip-archive.
-fn add_directory(zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathBuf>, dir: &PathBuf, profile_config: &ProfileConfig, args: &Args) -> Result<(), String> {
+fn add_directory(zip: &mut ZipWriter<File>, dir: &PathBuf, profile_config: &ProfileConfig, args: &Args) -> Result<(), String> {
     if !dir.is_dir() {
         return Err(format!("{:?} is not a directory!", dir));
     }
@@ -172,23 +161,18 @@ fn add_directory(zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathB
 
         // go recursively into directories
         if path.is_dir() {
-            if let Err(msg) = add_directory(zip, file_map, &path, profile_config, args) {
+            if let Err(msg) = add_directory(zip, &path, profile_config, args) {
                 if args.verbose { println!("{}", msg); }
             }
         }
 
         // actually store file
         if path.is_file() {
-            match write_to_zip(&path, zip, file_map, args) {
+            match write_to_zip(&path, zip, args) {
                 Ok(_) => (),
-                Err((uuid, msg)) => {
+                Err(msg) => {
                     if args.verbose {
                         println!("{}", msg);
-                    }
-                    // there doesn't seem to be a proper way to remove files from an archive yet
-                    // --> simply remove the entry from the map and hope that we're not wasting too much space.
-                    if let Some(uuid) = uuid {
-                        file_map.remove(&uuid);
                     }
                 }
             }
@@ -198,7 +182,7 @@ fn add_directory(zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathB
 }
 
 /// Attempts to add file at the given path to the archive.
-fn add_file(zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathBuf>, file: &PathBuf, profile_config: &ProfileConfig, args: &Args) -> Result<(), String> {
+fn add_file(zip: &mut ZipWriter<File>, file: &PathBuf, profile_config: &ProfileConfig, args: &Args) -> Result<(), String> {
     if !file.is_file() {
         return Err(format!("{:?} is not a file!", file));
     }
@@ -210,77 +194,45 @@ fn add_file(zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathBuf>, 
         return Ok(())
     }
 
-    match write_to_zip(file, zip, file_map, args) {
-        Ok(_) => Ok(()),
-        Err((uuid, msg)) => {
-            // there doesn't seem to be a proper way to remove files from an archive yet
-            // --> simply remove the entry from the map and hope that we're not wasting too much space.
-            if let Some(uuid) = uuid {
-                file_map.remove(&uuid);
-            }
-            Err(msg)
-        }
-    }
+    write_to_zip(file, zip, args)
 }
 
 /// Attempts to write the file at the specified `path` to the `zip`.
 /// 
 /// # Errors
-/// Returns an [Err] if something goes wrong. Has the following format:
-/// First value is the [Uuid] under which it was attempted to store the file in the archive.
-/// The second value is the error message.
-fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, file_map: &mut HashMap<String, PathBuf>, args: &Args) -> Result<(), (Option<String>, String)> {
+/// Returns an [Err] describing the issue if something goes wrong
+fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, args: &Args) -> Result<(), String> {
     let mut file = match File::open(path) {
         Ok(file) => file,
-        Err(err) => return Err((None, format!("Couldn't open file {:?} because of {:?}", path, err))),
+        Err(err) => return Err(format!("Couldn't open file {:?} because of {:?}", path, err)),
     };
-    let uuid = uuid::Uuid::new_v4().as_hyphenated().to_string();
+
     if args.verbose {
-        println!("Store {:?} as {:?}", path, uuid);
+        println!("Store {:?}", path);
     }
-
-    if let Err(err) = zip.start_file(uuid.clone(), FileOptions::default()) {
-        return Err((None, format!("Couldn't start file {:?} because of {:?}", path, err)));
+    
+    let name = String::from(path.to_str().unwrap_or(""));
+    if let Err(err) = zip.start_file(name, FileOptions::default()) {
+        return Err(format!("Couldn't start file {:?} because of {:?}", path, err));
     }
-
-    file_map.insert(uuid.clone(), path.clone());
 
     const N: usize = 0x2000;
     let mut buf = [0u8; N];
     loop {
         let read_bytes = match Read::by_ref(&mut file).take(N as u64).read(&mut buf) {
             Ok(n) => n,
-            Err(err) => return Err((Some(uuid), format!("Couldn't read from {:?} because of {:?}", path, err))),
+            Err(err) => return Err(format!("Couldn't read from {:?} because of {:?}", path, err)),
         };
 
         if read_bytes == 0 { break; }
 
         if let Err(err) = zip.write_all(&mut buf[..read_bytes]) {
-            return Err((Some(uuid), format!("Couldn't write {:?} to archive because of {:?}", path, err)));
+            return Err(format!("Couldn't write {:?} to archive because of {:?}", path, err));
         }
     }
 
     if args.verbose {
         println!("Successfully added {:?} to archive.", path);
-    }
-    Ok(())
-}
-
-/// Writes a serialized version of `file_map` into `zip`.
-/// 
-/// Returns an [Err] explaining the issue if something goes wrong.
-fn write_file_map(zip: &mut ZipWriter<File>, file_map: HashMap<String, PathBuf>) -> Result<(), String> {
-    if let Err(err) = zip.start_file("file_map", FileOptions::default()) {
-        return Err(format!("Couldn't start file for file_map because {:?}", err));
-    }
-
-    let mut bytes = match serde_json::to_vec(&file_map) {
-        Ok(bytes) => bytes,
-        Err(err) => return Err(format!("Couldn't serialize file_map because {:?}", err)),
-    };
-
-    if let Err(err) = zip.write_all(bytes.as_mut_slice()) {
-        return Err(format!("Couldn't write file_map because {:?}", err));
     }
     Ok(())
 }
