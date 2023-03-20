@@ -4,8 +4,6 @@ use std::{ffi::OsStr, fs, io::Error, path::PathBuf};
 
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
 
-use crate::cli_args::Args;
-
 const GENERAL_CONFIG_PATH: &'static str = "./general_config.json";
 
 /// Loads the general config file.
@@ -63,20 +61,32 @@ fn valid_dir_path(path: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 
+/// Trait for matching [ProfileConfig]s.
+/// For a [ProfileConfig] to match, either its `name` must match what is returned by [ProfileSpecifier::name],
+/// or its `uuid` has to match what is returned by [ProfileSpecifier::uuid].
+pub trait ProfileSpecifier {
+    fn name(&self) -> Option<&str>;
+
+    fn uuid(&self) -> Option<&str>;
+}
+
 /// Checks if the given [ProfileConfig] either has the `name` or the `uuid` specified in `args`.
 ///
 /// # Returns
 /// Given [ProfileConfig] if it does.
 /// [None] else.
-fn matches_args(profile_conf: Option<ProfileConfig>, args: &Args) -> Option<ProfileConfig> {
+fn matches_specifier<T: ProfileSpecifier>(
+    profile_conf: Option<ProfileConfig>,
+    specifier: &T,
+) -> Option<ProfileConfig> {
     let profile_conf = profile_conf?;
     let name_match;
-    match &args.name {
+    match specifier.name() {
         Some(name) => name_match = &profile_conf.name == name,
         None => name_match = true,
     }
     let uuid_match;
-    match &args.uuid {
+    match specifier.uuid() {
         Some(uuid) => {
             if let Ok(uuid) = uuid::Uuid::parse_str(uuid) {
                 uuid_match = profile_conf.get_uuid() == &uuid;
@@ -95,14 +105,14 @@ fn matches_args(profile_conf: Option<ProfileConfig>, args: &Args) -> Option<Prof
 }
 
 /// Loads profile configs from the specification in the provided [GeneralConfig].
-/// 
+///
 /// Only returns those [ProfileConfig]s that match the `name` or the `uuid` given in `cli_args`. If both are [None], all found [ProfileConfig]s are returned.
-/// 
+///
 /// Is a soft fail in such a way that it will skip those config files it can't read / parse.
 /// If you want a hard fail, that will return an [Err] as soon as one [ProfileConfig] fails, use [hard_load_profile_configs].
-pub fn soft_load_profile_configs(
+pub fn soft_load_profile_configs<T: ProfileSpecifier>(
     general_config: &GeneralConfig,
-    cli_args: &Args,
+    specifier: &T,
 ) -> Result<Vec<ProfileConfig>, String> {
     let path = &general_config.profile_configs;
 
@@ -130,21 +140,21 @@ pub fn soft_load_profile_configs(
             }
 
             // load the profile
-            matches_args(ProfileConfig::load(&entry.ok()?.path()).ok(), cli_args)
+            matches_specifier(ProfileConfig::load(&entry.ok()?.path()).ok(), specifier)
         })
         .collect())
 }
 
 /// Loads profile configs from the specification in the provided [GeneralConfig].
-/// 
+///
 /// Only returns those [ProfileConfig]s that match the `name` or the `uuid` given in `cli_args`. If both are [None], all found [ProfileConfig]s are returned.
-/// 
+///
 /// Is a hard fail in such a way that it will return an [Err] as soon as one [ProfileConfig] fails.
 /// If you want a soft fail that simply skips the broken files and continues to try the others, use [soft_load_profile_configs].
 #[allow(dead_code)]
-pub fn hard_load_profile_configs(
+pub fn hard_load_profile_configs<T: ProfileSpecifier>(
     general_config: &GeneralConfig,
-    cli_args: &Args
+    specifier: &T,
 ) -> Result<Vec<ProfileConfig>, String> {
     let path = &general_config.profile_configs;
 
@@ -179,7 +189,7 @@ pub fn hard_load_profile_configs(
     match collect_res {
         Ok(vec) => Ok(vec
             .into_iter()
-            .filter_map(|conf| matches_args(Some(conf), cli_args))
+            .filter_map(|conf| matches_specifier(Some(conf), specifier))
             .collect()),
         Err(e) => Err(e.to_string()),
     }
@@ -223,6 +233,42 @@ mod config_tests {
         }
     }
 
+    struct MockProfileSpecifier {
+        name: Option<String>,
+        uuid: Option<String>,
+    }
+
+    impl MockProfileSpecifier {
+        pub fn new(name: Option<String>, uuid: Option<String>) -> MockProfileSpecifier {
+            MockProfileSpecifier {
+                name,
+                uuid,
+            }
+        }
+
+        pub fn with_name(name: Option<String>) -> MockProfileSpecifier {
+            Self::new(name, None)
+        }
+
+        pub fn with_uuid(uuid: Option<String>) -> MockProfileSpecifier {
+            Self::new(None, uuid)
+        }
+
+        pub fn with_none() -> MockProfileSpecifier {
+            Self::new(None, None)
+        }
+    }
+
+    impl ProfileSpecifier for MockProfileSpecifier {
+        fn name(&self) -> Option<&str> {
+            self.name.as_ref().map(|name| name.as_str())
+        }
+
+        fn uuid(&self) -> Option<&str> {
+            self.uuid.as_ref().map(|uuid| uuid.as_str())
+        }
+    }
+
     mod soft_load_profile_configs_tests {
         use super::*;
 
@@ -232,14 +278,14 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
-            assert!(soft_load_profile_configs(&config, &args).is_err());
+            let specifier = MockProfileSpecifier::with_none();
+            assert!(soft_load_profile_configs(&config, &specifier).is_err());
 
             let path = PathBuf::from("./Cargo.toml");
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            assert!(soft_load_profile_configs(&config, &args).is_err());
+            assert!(soft_load_profile_configs(&config, &specifier).is_err());
         }
 
         #[test]
@@ -248,8 +294,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
-            let configs = soft_load_profile_configs(&config, &args).unwrap();
+            let specifier = MockProfileSpecifier::with_none();
+            let configs = soft_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 5);
         }
@@ -260,8 +306,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: Some(String::from("Hutzi")), uuid: None, verbose: false };
-            let configs = soft_load_profile_configs(&config, &args).unwrap();
+            let specifier = MockProfileSpecifier::with_name(Some(String::from("Hutzi")));
+            let configs = soft_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 3);
         }
@@ -272,8 +318,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")), verbose: false };
-            let configs = soft_load_profile_configs(&config, &args).unwrap();
+            let specifier = MockProfileSpecifier::with_uuid(Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")));
+            let configs = soft_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 1);
         }
@@ -284,8 +330,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
-            let configs = soft_load_profile_configs(&config, &args).unwrap();
+            let specifier = MockProfileSpecifier::with_none();
+            let configs = soft_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 2);
         }
@@ -300,14 +346,14 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
-            assert!(hard_load_profile_configs(&config, &args).is_err());
+            let specifier = MockProfileSpecifier::with_none();
+            assert!(hard_load_profile_configs(&config, &specifier).is_err());
 
             let path = PathBuf::from("./Cargo.toml");
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            assert!(hard_load_profile_configs(&config, &args).is_err());
+            assert!(hard_load_profile_configs(&config, &specifier).is_err());
         }
 
         #[test]
@@ -316,8 +362,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
-            let configs = hard_load_profile_configs(&config, &args).unwrap();
+            let specifer = MockProfileSpecifier::with_none();
+            let configs = hard_load_profile_configs(&config, &specifer).unwrap();
 
             assert_eq!(configs.len(), 5);
         }
@@ -328,8 +374,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: Some(String::from("Hutzi")), uuid: None, verbose: false };
-            let configs = hard_load_profile_configs(&config, &args).unwrap();
+            let specifier = MockProfileSpecifier::with_name(Some(String::from("Hutzi")));
+            let configs = hard_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 3);
         }
@@ -340,8 +386,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")), verbose: false };
-            let configs = hard_load_profile_configs(&config, &args).unwrap();
+            let specifier = MockProfileSpecifier::with_uuid(Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")));
+            let configs = hard_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 1);
         }
@@ -352,8 +398,8 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let args = Args{ general_config: String::from(""), name: None, uuid: None, verbose: false };
-            let configs = hard_load_profile_configs(&config, &args);
+            let specifier = MockProfileSpecifier::with_none();
+            let configs = hard_load_profile_configs(&config, &specifier);
 
             assert!(configs.is_err());
         }

@@ -1,5 +1,7 @@
 use clap::{ ArgGroup, Parser };
 
+use crate::config::ProfileSpecifier;
+
 /// Crate for creating backups.
 /// Allows to only check for specific Backup Profiles if either the name or the uuid are provided, or checks all of them, if nothing is provided.
 #[derive(Parser)]
@@ -25,6 +27,16 @@ pub struct Args {
     /// Set to get verbose output
     #[arg(short, long)]
     pub verbose: bool,
+}
+
+impl ProfileSpecifier for Args {
+    fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(|name| name.as_str())
+    }
+
+    fn uuid(&self) -> Option<&str> {
+        self.uuid.as_ref().map(|uuid| uuid.as_str())
+    }
 }
 
 /// Parses cli-args and returns them.
