@@ -2,6 +2,7 @@ mod backup;
 mod cli_args;
 mod config;
 mod dialog;
+mod scheduler;
 
 use std::{process::exit};
 
