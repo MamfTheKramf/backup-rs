@@ -14,7 +14,8 @@ windows = { version = "0.46", features = [
     "Win32_Foundation", 
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Com",
-    "Win32_System_TaskScheduler"
+    "Win32_System_TaskScheduler",
+    "Win32_System_Ole"
 ] }
 zip = "0.6.4"
 serde = "1.0"
