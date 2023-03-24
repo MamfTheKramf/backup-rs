@@ -19,7 +19,7 @@ pub fn handle_profile(profile_config: &mut ProfileConfig, general_config: &Gener
     let now = offset::Local::now().naive_local();
     let next_backup = *profile_config.next_backup();
 
-    if next_backup < now {
+    if !args.force && next_backup < now {
         println!("Next backup isn't planned yet. It's scheduled for {:?}", next_backup);
         return;
     }

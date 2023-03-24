@@ -24,6 +24,10 @@ pub struct Args {
     #[arg(short, long)]
     pub uuid: Option<String>,
 
+    /// Force backup even if it isn't due yet.
+    #[arg(short)]
+    pub force: bool,
+
     /// Set to get verbose output
     #[arg(short, long)]
     pub verbose: bool,
