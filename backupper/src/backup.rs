@@ -18,6 +18,12 @@ use crate::{cli_args::Args, dialog::retry_dialog, scheduler::schedule_backup};
 pub fn handle_profile(profile_config: &mut ProfileConfig, general_config: &GeneralConfig, args: &Args) {
     let now = offset::Local::now().naive_local();
     let next_backup = *profile_config.next_backup();
+
+    if next_backup < now {
+        println!("Next backup isn't planned yet. It's scheduled for {:?}", next_backup);
+        return;
+    }
+
     let scheduled = *profile_config.set_next_backup(None);
 
     if args.verbose {
