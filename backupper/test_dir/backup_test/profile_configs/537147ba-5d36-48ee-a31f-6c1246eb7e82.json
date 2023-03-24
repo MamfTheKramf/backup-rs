@@ -18,7 +18,12 @@
       "minutes": {
         "min": 0,
         "max": 59,
-        "kind": "All"
+        "kind": {
+          "EveryNth": [
+            5,
+            0
+          ]
+        }
       },
       "hours": {
         "min": 0,
