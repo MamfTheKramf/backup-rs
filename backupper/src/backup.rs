@@ -8,7 +8,7 @@ use windows::Win32::UI::WindowsAndMessaging::{MB_ICONWARNING, MESSAGEBOX_RESULT}
 use zip::{ZipWriter, write::FileOptions};
 
 
-use crate::{cli_args::Args, dialog::retry_dialog};
+use crate::{cli_args::Args, dialog::retry_dialog, scheduler::schedule_backup};
 
 /// Handles the provided [ProfileConfig].
 /// Checks when the next update is due and either schedules another call to this executable or performs the update.
@@ -54,9 +54,13 @@ pub fn handle_profile(profile_config: &mut ProfileConfig, general_config: &Gener
         profile_config.set_next_backup(Some(offset::Local::now().naive_local()));
     }
 
-    match profile_config.store(&general_config.profile_configs) {
-        Err(err) => println!("Couldn't store profile_config {:?}.\nGot error: {:?}", profile_config, err),
-        _ => ()
+    if let Err(err) = profile_config.store(&general_config.profile_configs) {
+        println!("Couldn't store profile_config {:?}.\nGot error: {:?}", profile_config, err);
+        return;
+    }
+
+    if let Err(msg) = schedule_backup(profile_config.get_uuid().clone(), *profile_config.next_backup()) {
+        println!("Couldn't set up next backup.\nGot error: {:?}", msg);
     }
 }
 
