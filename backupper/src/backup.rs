@@ -4,11 +4,10 @@ use std::{fs::{self, OpenOptions, File}, path::PathBuf, io::{Read, Write}};
 
 use chrono::offset;
 use config::{profile_config::ProfileConfig, interval::DateTimeMatch, general_config::GeneralConfig};
-use windows::Win32::UI::WindowsAndMessaging::{MB_ICONWARNING, MESSAGEBOX_RESULT};
 use zip::{ZipWriter, write::FileOptions};
 
 
-use crate::{cli_args::Args, dialog::retry_dialog, scheduler::schedule_backup};
+use crate::{cli_args::Args, dialog::{retry_dialog, DialogResult, RETRY}, scheduler::schedule_backup};
 
 /// Handles the provided [ProfileConfig].
 /// Checks when the next update is due and either schedules another call to this executable or performs the update.
@@ -48,7 +47,7 @@ pub fn handle_profile(profile_config: &mut ProfileConfig, general_config: &Gener
     }
 
     // actually perform backup
-    if skipped_match {
+    if args.force || skipped_match {
         if let Err(msg) = perform_backup(profile_config, args) {
             println!("{}", msg);
             return;
@@ -79,13 +78,13 @@ pub fn handle_profile(profile_config: &mut ProfileConfig, general_config: &Gener
 /// 5. Stores zip an exits
 fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::Result<(), String> {
     // if target dir isn't available, open dialog
-    let mut choice = MESSAGEBOX_RESULT(4);
-    while !is_target_dir_available(profile_config) && choice == MESSAGEBOX_RESULT(4) {
+    let mut choice = DialogResult(RETRY);
+    while !is_target_dir_available(profile_config) && choice == DialogResult(RETRY) {
         let msg = format!("Das Verzeichnis {:?} scheint nicht verfügpar zu sein.\nBitte schließe die externe Festplatte an und versuche es erneut.", profile_config.target_dir);
         let title = "Zielfverzeichnis nicht verfügbar.";
-        choice = retry_dialog(title, &msg, MB_ICONWARNING);
+        choice = retry_dialog(title, &msg);
     }
-    if choice != MESSAGEBOX_RESULT(4) {
+    if choice != DialogResult(RETRY) {
         return Err(format!("Directory {:?} isn't available and retry was cancled", profile_config.target_dir))
     }
 

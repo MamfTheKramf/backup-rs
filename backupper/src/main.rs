@@ -8,7 +8,6 @@ use std::{process::exit};
 
 use backup::handle_profile;
 use dialog::info_dialog;
-use windows::Win32::UI::WindowsAndMessaging::MESSAGEBOX_STYLE;
 
 use crate::config::soft_load_profile_configs;
 
@@ -60,7 +59,7 @@ fn main() {
         handle_profile(&mut profile_config, &general_config, &args)
     }
 
-    info_dialog("Backup Abgeschlossen", "Das Backup ist abgeschlossen. Die externe Festplatte kann jetzt entfernt werden.", MESSAGEBOX_STYLE(0));
+    info_dialog("Backup Abgeschlossen", "Das Backup ist abgeschlossen. Die externe Festplatte kann jetzt entfernt werden.");
 
     if let Some(orig_path) = orig_path {
         if let Err(err) = std::env::set_current_dir(orig_path) {

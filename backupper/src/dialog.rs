@@ -1,27 +1,40 @@
 //! Functions for opening dialog messages
+#![allow(dead_code)]
 
-use windows::{core::*, Win32::UI::WindowsAndMessaging::*};
+#[cfg(windows)]
+mod windows;
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct DialogResult(pub i32);
 
-fn as_u16_vec(text: &str) -> Vec<u16> {
-    text.encode_utf16()
-        .collect()
+pub const OK: i32 = 1;
+pub const CANCEL: i32 = 2;
+pub const RETRY: i32 = 4;
+
+/// Displays a retry dialog with the given `title` and `msg`.
+/// 
+/// # Parameters
+/// - `title`: Title of the dialog window
+/// - `msg`: Message to be displayed
+/// The parameters don't have to end with a null-character `'\0'`. If needed, they will be added by the function.
+/// 
+/// # Returns
+/// [DialogResult] depending on what the user clicked on.
+pub fn retry_dialog(title: &str, msg: &str) -> DialogResult {
+    #[cfg(target_family = "windows")]
+    windows::retry_dialog(title, msg)
 }
 
-/// Opens a Retry-Message box with the given parameters and returns the users answer.
-pub fn retry_dialog(title: &str, msg: &str, styles: MESSAGEBOX_STYLE) -> MESSAGEBOX_RESULT {
-    let title = as_u16_vec(&format!("{}\0", title));
-    let msg: Vec<u16> = as_u16_vec(&format!("{}\0", msg));
-    unsafe {
-        MessageBoxW(None, PCWSTR::from_raw(msg.as_ptr()), PCWSTR::from_raw(title.as_ptr()), MB_RETRYCANCEL | styles)
-    }
-}
-
-/// Opens an Info-Message box wiht the given parameters and returns the users answer.
-pub fn info_dialog(title: &str, msg: &str, styles: MESSAGEBOX_STYLE) -> MESSAGEBOX_RESULT {
-    let title = as_u16_vec(&format!("{}\0", title));
-    let msg: Vec<u16> = as_u16_vec(&format!("{}\0", msg));
-    unsafe {
-        MessageBoxW(None, PCWSTR::from_raw(msg.as_ptr()), PCWSTR::from_raw(title.as_ptr()), MB_OK | MB_ICONINFORMATION | styles)
-    }
+/// Display an info dialog with the given `title` and `msg`.
+/// 
+/// # Parameters
+/// - `title`: Title of the dialog window
+/// - `msg`: Message to be displayed
+/// The parameters don't have to end with a null-character `'\0'`. If needed, they will be added by the function.
+/// 
+/// # Returns
+/// [DialogResult] depending on what the user clicked on.
+pub fn info_dialog(title: &str, msg: &str) -> DialogResult {
+    #[cfg(target_family = "windows")]
+    windows::info_dialog(title, msg)
 }
