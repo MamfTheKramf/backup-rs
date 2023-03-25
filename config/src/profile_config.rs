@@ -110,29 +110,31 @@ impl ProfileConfig {
         &self.next_backup
     }
 
-    /// Updates the `next_backup` field according to `interval`.
-    /// The new values is always at least the provided time. If [None] is given, it takes the `next_backup` of itself. 
-    ///
+    /// Gets the [NaiveDateTime] for the next backup, either based on its own `next_backup` value or based on `from_datetime` if [Some] was given.
+    /// 
     /// # Returns
-    /// Immutable reference to the `next_backup` field.
-    /// It isn't guaranteed, that `next_backup` is matched by `interval`. It must alwys be checked first.
-    pub fn set_next_backup(&mut self, from_datetime: Option<NaiveDateTime>) -> &NaiveDateTime {
+    /// [NaiveDateTime] at which the next backup shall be performed.
+    /// The returned value is alway at least the provided time. If [None] was given, it takes `next_backup` of itself as starting point.
+    /// The return value is not guaranteed to be matched by `interval`. It must always be checked first.
+    pub fn get_next_scheduled(&self, from_datetime: Option<NaiveDateTime>) -> NaiveDateTime {
         let base = match from_datetime {
             Some(datetime) => datetime,
             None => self.next_backup,
         };
 
         match self.interval.next_datetime(base) {
-            Some(datetime) => self.next_backup = datetime,
+            Some(datetime) => datetime,
             None => {
-                self.next_backup = self
-                    .next_backup
+                self.next_backup
                     .checked_add_days(Days::new(365))
                     .unwrap_or(self.next_backup)
             }
         }
+    }
 
-        self.next_backup()
+    /// Sets next_backup field to the given [NaiveDateTime].
+    pub fn set_next_backup(&mut self, new_value: NaiveDateTime) {
+        self.next_backup = new_value
     }
 
     /// Converts a [PathBuf] describing a directory and a [Uuid] into a filename.
@@ -270,7 +272,7 @@ mod profile_config_tests {
             let next_year = now.year() + now.month() as i32 / 12;
             let next_match = NaiveDate::from_ymd_opt(next_year, next_month, 1).unwrap()
                 .and_hms_opt(0, 0, 0).unwrap();
-            assert_eq!(p.set_next_backup(None), &next_match);
+            assert_eq!(p.get_next_scheduled(None), next_match);
 
             p.next_backup = NaiveDate::from_ymd_opt(2000, 12, 16).unwrap()
                 .and_hms_opt(12, 30, 6).unwrap();
@@ -278,7 +280,7 @@ mod profile_config_tests {
             let next_year = 2001;
             let next_match = NaiveDate::from_ymd_opt(next_year, next_month, 1).unwrap()
                 .and_hms_opt(0, 0, 0).unwrap();
-            assert_eq!(p.set_next_backup(None), &next_match);
+            assert_eq!(p.get_next_scheduled(None), next_match);
         }
 
         #[test]
@@ -287,7 +289,7 @@ mod profile_config_tests {
                 .minutes(SpecifierKind::None)
                 .build()
                 .unwrap();
-            let mut p = ProfileConfig::new(
+            let p = ProfileConfig::new(
                 String::from("Hutzi"),
                 PathBuf::from("ho"),
                 vec![],
@@ -298,7 +300,7 @@ mod profile_config_tests {
             );
 
             let now = offset::Local::now().naive_local();
-            assert!(&now <= p.set_next_backup(None));
+            assert!(now <= p.get_next_scheduled(None));
         }
     }
 
