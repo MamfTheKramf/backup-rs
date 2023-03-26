@@ -31,7 +31,8 @@ pub struct ProfileConfig {
     /// Interval specifying when to make the next backup
     pub interval: Interval,
     /// Datetime specifying when the next backup should be made
-    next_backup: NaiveDateTime,
+    /// `next_backup` isn't guaranteed to be matched by `interval. It must always be checked first.
+    pub next_backup: NaiveDateTime,
 }
 
 impl ProfileConfig {
@@ -104,12 +105,6 @@ impl ProfileConfig {
         &self.uuid
     }
 
-    /// Returns immutable reference to `next_backup`.
-    /// `next_backup` isn't guaranteed to be matched by `interval. It must always be checked first.
-    pub fn next_backup(&self) -> &NaiveDateTime {
-        &self.next_backup
-    }
-
     /// Gets the [NaiveDateTime] for the next backup, either based on its own `next_backup` value or based on `from_datetime` if [Some] was given.
     /// 
     /// # Returns
@@ -130,11 +125,6 @@ impl ProfileConfig {
                     .unwrap_or(self.next_backup)
             }
         }
-    }
-
-    /// Sets next_backup field to the given [NaiveDateTime].
-    pub fn set_next_backup(&mut self, new_value: NaiveDateTime) {
-        self.next_backup = new_value
     }
 
     /// Converts a [PathBuf] describing a directory and a [Uuid] into a filename.
