@@ -55,11 +55,19 @@ fn main() {
         println!("Loaded {} profile configs.", profile_configs.len())
     }
 
-    for mut profile_config in profile_configs {
-        handle_profile(&mut profile_config, &general_config, &args)
+    match args.command {
+        cli_args::Commands::Backup => {
+            for mut profile_config in profile_configs {
+                handle_profile(&mut profile_config, &general_config, &args)
+            }
+        
+            info_dialog("Backup Abgeschlossen", "Das Backup ist abgeschlossen. Die externe Festplatte kann jetzt entfernt werden.");
+        },
+        cli_args::Commands::Restore(restore) => {
+            dbg!(restore.timestamp);
+            info_dialog("Not implemented yet", "Die Restore-Funktion ist bisher noch nicht verfügbar.");
+        },
     }
-
-    info_dialog("Backup Abgeschlossen", "Das Backup ist abgeschlossen. Die externe Festplatte kann jetzt entfernt werden.");
 
     if let Some(orig_path) = orig_path {
         if let Err(err) = std::env::set_current_dir(orig_path) {
