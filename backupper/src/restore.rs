@@ -1,9 +1,10 @@
 //! Contains function for restoring a backup.
 
-use std::fs;
+use std::{fs::{self, File}, path::PathBuf, io};
 
 use chrono::NaiveDateTime;
 use config::profile_config::ProfileConfig;
+use zip::ZipArchive;
 
 use crate::{
     cli_args::Args,
@@ -85,5 +86,54 @@ pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, args: &
     println!("Found best: {:?}", best_backup);
     if best_backup.is_none() {
         return;
+    }
+
+    let best_backup = best_backup.unwrap();
+
+    let file = match File::open(&best_backup.1) {
+        Ok(file) => file,
+        Err(e) => {
+            println!("Error opening file {:?}: {:?}", best_backup.1, e);
+            return;
+        }
+    };
+
+    let mut zip = match ZipArchive::new(file) {
+        Ok(file) => file,
+        Err(e) => {
+            println!("Couldn't create archive because {:?}", e);
+            return;
+        }
+    };
+
+    for i in 0..zip.len() {
+        let mut file = match zip.by_index(i) {
+            Ok(file) => file,
+            Err(e) => {
+                println!("Error extracting file: {:?}", e);
+                return;
+            }
+        };
+        let filepath = PathBuf::from(file.name());
+
+        if let Some(p) = filepath.parent() {
+            if !p.exists() {
+                if let Err(e) = fs::create_dir_all(p) {
+                    println!("Couldn't create dir {:?} because {:?}", filepath.parent(), e);
+                    return;
+                }
+            }
+        }
+        let mut outfile = match fs::File::create(&filepath) {
+            Ok(outfile) => outfile,
+            Err(e) => {
+                println!("Couldn't create outfile {:?} because {:?}", filepath, e);
+                return;
+            }
+        };
+        if let Err(e) = io::copy(&mut file, &mut outfile) {
+            println!("Couldn't copy to outfile because {:?}", e);
+            return;
+        }
     }
 }

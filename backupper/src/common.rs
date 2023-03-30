@@ -10,6 +10,6 @@ use std::{path::PathBuf, fs};
 pub fn is_target_dir_available(dir_path: &PathBuf, is_writeable: bool) -> bool {
     match fs::metadata(dir_path) {
         Err(_) => false,
-        Ok(metadata) => metadata.is_dir() && (!is_writeable && !metadata.permissions().readonly()),
+        Ok(metadata) => metadata.is_dir() && (!is_writeable || !metadata.permissions().readonly()),
     }
 }
