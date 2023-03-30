@@ -1,4 +1,6 @@
+mod common;
 mod backup;
+mod restore;
 mod cli_args;
 mod config;
 mod dialog;
@@ -8,6 +10,7 @@ use std::{process::exit};
 
 use backup::handle_profile;
 use dialog::info_dialog;
+use restore::restore;
 
 use crate::config::soft_load_profile_configs;
 
@@ -53,7 +56,7 @@ fn main() {
         println!("Loaded {} profile configs.", profile_configs.len())
     }
 
-    match args.command {
+    match &args.command {
         cli_args::Commands::Backup => {
             for mut profile_config in profile_configs {
                 handle_profile(&mut profile_config, &general_config, &args)
@@ -61,9 +64,11 @@ fn main() {
         
             info_dialog("Backup Abgeschlossen", "Das Backup ist abgeschlossen. Die externe Festplatte kann jetzt entfernt werden.");
         },
-        cli_args::Commands::Restore(restore) => {
-            dbg!(restore.timestamp);
-            info_dialog("Not implemented yet", "Die Restore-Funktion ist bisher noch nicht verfügbar.");
+        cli_args::Commands::Restore(restore_params) => {
+            let timestamp = restore_params.timestamp.unwrap_or_else(|| chrono::Local::now().naive_local());
+            for profile_config in profile_configs {
+                restore(&profile_config, timestamp, &args);
+            }
         },
     }
 

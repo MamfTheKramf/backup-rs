@@ -15,7 +15,7 @@ use zip::{write::FileOptions, ZipWriter};
 use crate::{
     cli_args::Args,
     dialog::{retry_dialog, DialogResult, RETRY},
-    scheduler::schedule_backup,
+    scheduler::schedule_backup, common::is_target_dir_available,
 };
 
 /// Handles the provided [ProfileConfig].
@@ -100,7 +100,7 @@ fn is_scheduled(profile_config: &ProfileConfig, forced: bool) -> (bool, bool) {
 fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::Result<(), String> {
     // if target dir isn't available, open dialog
     let mut choice = DialogResult(RETRY);
-    while !is_target_dir_available(profile_config) && choice == DialogResult(RETRY) {
+    while !is_target_dir_available(&profile_config.target_dir, true) && choice == DialogResult(RETRY) {
         let msg = format!("Das Verzeichnis {:?} scheint nicht verfügpar zu sein.\nBitte schließe die externe Festplatte an und versuche es erneut.", profile_config.target_dir);
         let title = "Zielfverzeichnis nicht verfügbar.";
         choice = retry_dialog(title, &msg);
@@ -116,6 +116,7 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
 
     // set up zip archive
     let filename = profile_config.get_uuid().as_hyphenated().to_string()
+        + "_"
         + &chrono::offset::Local::now()
             .naive_local()
             .format("%Y-%m-%d_%H-%M")
@@ -167,14 +168,6 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
 fn remove_archive(mut zip: ZipWriter<File>, path: PathBuf) {
     zip.finish();
     fs::remove_file(path);
-}
-
-/// Checks if the target directory specified in [ProfileConfig] is writable or not.
-fn is_target_dir_available(profile_config: &ProfileConfig) -> bool {
-    match fs::metadata(profile_config.target_dir.clone()) {
-        Err(_) => false,
-        Ok(metadata) => metadata.is_dir() && !metadata.permissions().readonly(),
-    }
 }
 
 /// Walks through the given `dir` and adds all files not excluded to the zip-archive.
