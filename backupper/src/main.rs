@@ -12,7 +12,6 @@ use dialog::info_dialog;
 use crate::config::soft_load_profile_configs;
 
 fn main() {
-    println!("{:?}", std::env::current_dir());
     let orig_path = match std::env::current_dir() {
         Ok(path) => Some(path),
         Err(_) => None,
@@ -29,7 +28,6 @@ fn main() {
         }
     }
 
-    println!("{:?}", std::env::current_dir());
     let args = cli_args::get_args();
     let general_config = match config::load_general_config(Some(&args.general_config)) {
         Ok(config) => config,
@@ -74,5 +72,4 @@ fn main() {
             println!("Couldn't reset working dir because of {:?}", err);
         }
     }
-    println!("{:?}", std::env::current_dir());
 }
