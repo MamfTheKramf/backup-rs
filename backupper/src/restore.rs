@@ -9,13 +9,36 @@ use zip::ZipArchive;
 use crate::{
     cli_args::Args,
     common::is_target_dir_available,
-    dialog::{retry_dialog, DialogResult, RETRY},
+    dialog::{retry_dialog, DialogResult, RETRY}, 
 };
 
 /// Restores the files from the latest backup of the provided [ProfileConfig] that is older than the given `timestamp`.
 ///
 /// If there is no such backup, nothing happens.
 pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, args: &Args) {
+    if !available_target_dir_dialog(profile_config) {
+        if args.verbose {
+            println!("Target dir {:?} wasn't available and canceled.", profile_config.target_dir);
+        }
+        return;
+    }
+
+    let best_backup = find_backup_archive(profile_config, timestamp);
+    println!("Found best: {:?}", best_backup);
+    if best_backup.is_none() {
+        return;
+    }
+
+    let best_backup = best_backup.unwrap();
+    restore_from_backup(best_backup);
+}
+
+/// Opens retry dialog to attach external drive if the `profile_config`s target directory is not available.
+/// 
+/// # Returns
+/// `true` if the restoring shall proceed.
+/// `false` if cancel was selected.
+fn available_target_dir_dialog(profile_config: &ProfileConfig) -> bool {
     // make sure, directory is available
     let mut choice = DialogResult(RETRY);
     while !is_target_dir_available(&profile_config.target_dir, false)
@@ -25,22 +48,19 @@ pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, args: &
         let title = "Backupverzeichnis nicht verfügbar.";
         choice = retry_dialog(title, &msg);
     }
-    if choice != DialogResult(RETRY) {
-        if args.verbose {
-            println!(
-                "Directory {:?} isn't available and retry was cancled",
-                profile_config.target_dir
-            )
-        }
-        return;
-    }
 
-    // find matching backup
+    choice == DialogResult(RETRY)
+}
+
+/// Finds the latest backup file in the target dir that is older than the provided timestamp.
+/// 
+/// Returns [None] if no such backup file was found. This function doesn't go through the target dir recursively.
+fn find_backup_archive(profile_config: &ProfileConfig, timestamp: NaiveDateTime) -> Option<PathBuf> {
     let entries = match fs::read_dir(&profile_config.target_dir) {
         Ok(entries) => entries,
         Err(err) => {
             println!("Error reading dir: {:?}", err);
-            return;
+            return None;
         }
     };
 
@@ -58,15 +78,17 @@ pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, args: &
             continue;
         }
 
+        // Extract the creation date from the filename; one could use the creation date of the file, but this way we can be really sure
         let creation_date = path
             .file_name()
-            .map(|name| name.to_str().unwrap_or(""))
+            .map(|name| name.to_str().unwrap_or("")) // convert OsStr into normal str
             .map(|name| name.strip_suffix(".zip").unwrap_or(""))
             .map(|name| {
                 name.strip_prefix(&(profile_config.get_uuid().as_hyphenated().to_string() + "_"))
                     .unwrap_or("")
             })
             .unwrap_or("");
+        // actually parse str into NaiveDateTime
         let creation_date = match NaiveDateTime::parse_from_str(creation_date, "%Y-%m-%d_%H-%M") {
             Ok(date_time) => date_time,
             Err(e) => {
@@ -83,17 +105,17 @@ pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, args: &
             best_backup = Some((creation_date, path));
         }
     }
-    println!("Found best: {:?}", best_backup);
-    if best_backup.is_none() {
-        return;
-    }
 
-    let best_backup = best_backup.unwrap();
+    best_backup.and_then(|(_, path)| Some(path))
+}
 
-    let file = match File::open(&best_backup.1) {
+/// Restores each file in the given backup.
+/// If a file already exists, it is everwritten. If it doesn't exist, it is created.
+fn restore_from_backup(backup_file: PathBuf) {
+    let file = match File::open(&backup_file) {
         Ok(file) => file,
         Err(e) => {
-            println!("Error opening file {:?}: {:?}", best_backup.1, e);
+            println!("Error opening file {:?}: {:?}", backup_file, e);
             return;
         }
     };
