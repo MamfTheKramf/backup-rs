@@ -11,6 +11,12 @@ use chrono::{offset, Days, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+
+#[cfg(feature = "protobuf")]
+mod proto {
+    include!(concat!(env!("OUT_DIR"), "proto..profile_config.rs"));
+}
+
 /// Struct representing a profile configuration.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ProfileConfig {

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package proto.profile_config;
+
+message ProfileConfig {
+    string name = 1;
+    string uuid = 2;
+    string target_dir = 3;
+
+    repeated string files_to_include = 16;
+    repeated string dirs_to_include = 17;
+    repeated string files_to_exclude = 18;
+    repeated string dirs_to_exclude = 19;
+
+    message Interval {
+        message Specifier {
+            enum SpecifierKind {
+                None = 0;
+                All = 1;
+                First = 2;
+                Last = 3;
+                Nth = 4;
+                BackNth = 5;
+                ExplicitNths = 6;
+                EveryNth = 7;
+                ExplicitList = 8;
+            }
+
+            SpecifierKind kind = 1;
+            repeated uint32 values = 2;
+        }
+
+        optional Specifier minutes = 1;
+        optional Specifier hours = 2;
+        optional Specifier weekdays = 3;
+        optional Specifier monthdays = 4;
+        optional Specifier weeks = 5;
+        optional Specifier months = 6;
+    }
+
+    Interval interval = 32;
+}
