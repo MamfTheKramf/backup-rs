@@ -24,49 +24,49 @@ pub use self::{
 /// If weekdays and monthdays are both not [SpecifierKind::All], then only one of them has to match.
 ///
 /// Weeknumbers are handles as [ISO-Weeks](https://en.wikipedia.org/wiki/ISO_week_date). I.e., the first week with 4 days or mor in a year is week 0.
-#[derive(Debug, Builder, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Builder, Serialize, Deserialize)]
 pub struct Interval {
     /// Range 0-59
     #[builder(
         default = "Specifier::new(*MINUTES_RANGE.start(), *MINUTES_RANGE.end(), SpecifierKind::All)",
         setter(custom)
     )]
-    minutes: Specifier<u32>,
+    pub minutes: Specifier<u32>,
 
     /// Range 0-23
     #[builder(
         default = "Specifier::new(*HOURS_RANGE.start(), *HOURS_RANGE.end(), SpecifierKind::All)",
         setter(custom)
     )]
-    hours: Specifier<u32>,
+    pub hours: Specifier<u32>,
 
     /// Range Monday-Sunday
     #[builder(
         default = "Specifier::new(*WEEKDAYS_RANGE.start(), *WEEKDAYS_RANGE.end(), SpecifierKind::All)",
         setter(custom)
     )]
-    weekdays: Specifier<weekdays::Weekday>,
+    pub weekdays: Specifier<weekdays::Weekday>,
 
     /// Range 0-32
     #[builder(
         default = "Specifier::new(*MONTHDAYS_RANGE.start(), *MONTHDAYS_RANGE.end(), SpecifierKind::All)",
         setter(custom)
     )]
-    monthdays: Specifier<u32>,
+    pub monthdays: Specifier<u32>,
 
     /// Range 0-52
     #[builder(
         default = "Specifier::new(*WEEKS_RANGE.start(), *WEEKS_RANGE.end(), SpecifierKind::All)",
         setter(custom)
     )]
-    weeks: Specifier<u32>,
+    pub weeks: Specifier<u32>,
 
     /// Range January-December
     #[builder(
         default = "Specifier::new(*MONTHS_RANGE.start(), *MONTHS_RANGE.end(), SpecifierKind::All)",
         setter(custom)
     )]
-    months: Specifier<months::Month>,
+    pub months: Specifier<months::Month>,
 }
 
 const MINUTES_RANGE: RangeInclusive<u32> = 0..=59;
