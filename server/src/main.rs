@@ -7,11 +7,13 @@ use cli_args::parse_args;
 
 mod cli_args;
 mod api;
+mod errors;
 
 #[get("/")]
 async fn index() -> &'static str {
     "Hello"
 }
+
 
 #[launch]
 fn rocket() -> _ {
