@@ -9,3 +9,5 @@ edition = "2021"
 config = { path = "../config", features = ["protobuf"] }
 rocket = "=0.5.0-rc.3"
 clap = { version = "4.1", features = ["derive"] }
+log = "0.4"
+log4rs = { version = "1.2" }

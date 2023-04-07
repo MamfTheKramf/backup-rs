@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use api::get_profile_config_dir;
 use cli_args::parse_args;
+use log::info;
 
 #[macro_use] extern crate rocket;
 
@@ -13,9 +14,20 @@ async fn index() -> &'static str {
     "Hello"
 }
 
+fn init_logger(path: &PathBuf) {
+    match log4rs::init_file(path, Default::default()) {
+        Ok(_) => info!("Initialized logger"),
+        Err(e) => {
+            println!("Couldn't initialize logger: {:?}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     let args = parse_args();
+    init_logger(&PathBuf::from(args.logger_config));
 
     rocket::build()
         .manage(PathBuf::from(args.general_config))
