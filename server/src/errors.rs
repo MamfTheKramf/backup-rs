@@ -3,14 +3,15 @@ use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Error {
+    pub kind: ErrorKind,
     pub msg: String,
     pub cause: Option<Box<Error>>,
 }
 
 #[derive(Debug)]
-pub enum ErrorType {
-    NotFound(Error),
-    UnkownError(Error)
+pub enum ErrorKind {
+    NotFound,
+    Unkown,
 }
 
 impl Display for Error {
