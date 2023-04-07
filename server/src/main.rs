@@ -1,13 +1,15 @@
 use std::path::PathBuf;
 
-use api::get_profile_config_dir;
+use api::{get_profile_config_dir};
 use cli_args::parse_args;
+use config::general_config::GeneralConfig;
 use log::info;
 
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-mod cli_args;
 mod api;
+mod cli_args;
 mod errors;
 
 #[get("/")]
@@ -33,8 +35,16 @@ fn rocket() -> _ {
 
     std::env::set_var("ROCKET_CLI_COLORS", format!("{}", args.rocket_colors));
 
+    let general_config = match GeneralConfig::read(&PathBuf::from(&args.general_config)) {
+        Ok(config) => config,
+        Err(e) => {
+            log::error!("Couldn't read general config from {}. Got: {:#?}", args.general_config, e);
+            std::process::exit(1);
+        }
+    };
+
     rocket::build()
-        .manage(PathBuf::from(args.general_config))
+        .manage(general_config)
         .mount("/", routes![index])
         .mount("/api", routes![get_profile_config_dir])
 }
