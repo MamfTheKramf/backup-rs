@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use api::{get_profile_config_dir};
+use api::{get_profile_config_dir, get_profile_configs};
 use cli_args::parse_args;
 use config::general_config::GeneralConfig;
 use log::info;
@@ -46,5 +46,8 @@ fn rocket() -> _ {
     rocket::build()
         .manage(general_config)
         .mount("/", routes![index])
-        .mount("/api", routes![get_profile_config_dir])
+        .mount("/api", routes![
+            get_profile_config_dir,
+            get_profile_configs
+        ])
 }

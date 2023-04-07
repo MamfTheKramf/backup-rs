@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-config = { path = "../config", features = ["protobuf"] }
-rocket = "=0.5.0-rc.3"
+config = { path = "../config" }
+rocket = { version = "=0.5.0-rc.3", features = ["json"] }
 clap = { version = "4.1", features = ["derive"] }
 log = "0.4"
 log4rs = { version = "1.2" }
