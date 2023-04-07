@@ -5,7 +5,7 @@ use std::fmt::Display;
 pub struct Error {
     pub kind: ErrorKind,
     pub msg: String,
-    pub cause: Option<Box<Error>>,
+    pub cause: Option<Box<dyn std::error::Error>>,
 }
 
 #[derive(Debug)]
@@ -26,7 +26,7 @@ impl Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match &self.cause {
-            Some(cause) => Some(cause),
+            Some(cause) => Some(cause.as_ref()),
             None => None,
         }
     }
