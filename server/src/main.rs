@@ -27,7 +27,10 @@ fn init_logger(path: &PathBuf) {
 #[launch]
 fn rocket() -> _ {
     let args = parse_args();
-    init_logger(&PathBuf::from(args.logger_config));
+    init_logger(&PathBuf::from(&args.logger_config));
+    info!("CLI-Args: {:#?}", args);
+
+    std::env::set_var("ROCKET_CLI_COLORS", format!("{}", args.rocket_colors));
 
     rocket::build()
         .manage(PathBuf::from(args.general_config))
