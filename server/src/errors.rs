@@ -17,7 +17,7 @@ pub enum ErrorKind {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.cause {
-            Some(cause) => write!(f, "{:?}: \"{}\"\nCaused by: {}", self.kind, self.msg, cause),
+            Some(cause) => write!(f, "{:?}: \"{}\"\nCaused by: {:#?}", self.kind, self.msg, cause),
             None => write!(f, "{:?}: \"{}\"", self.kind, self.msg),
         }
     }
