@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
 use rocket::http::Status;
-use rocket::State;
+use rocket::serde::{json::Json, Serialize};
 use rocket::tokio::fs;
-use rocket::serde::{Serialize, json::Json};
+use rocket::State;
 
 use crate::errors::{Error, ErrorKind};
 
@@ -13,7 +13,7 @@ use crate::errors::{Error, ErrorKind};
 type APIError = (Status, String);
 
 /// Returns the path to the dir that stores the [ProfileConfig]s.
-/// 
+///
 /// If the [GeneralConfig] file can't be opened, a `404` Error is returned.
 /// On other errors, a `500` Error is returned.
 #[get("/profiles/config_dir")]
@@ -23,31 +23,26 @@ pub async fn get_profile_config_dir(general_config: &State<GeneralConfig>) -> (S
 
 /// Loads all the profile configs from the provided directory and returns them
 async fn read_profile_configs(path: &PathBuf) -> Result<Vec<ProfileConfig>, Error> {
-    let mut dir = fs::read_dir(path)
-        .await
-        .or_else(|e| {
-            log::error!("Couldn't read profile-configs dir because {:#?}", e);
-            Err(Error {
-                kind: ErrorKind::Internal,
-                msg: String::from("Couldn't open directory with profile configs"),
-                cause: Some(Box::new(e))
-            })
-        })?;
+    let mut dir = fs::read_dir(path).await.or_else(|e| {
+        log::error!("Couldn't read profile-configs dir because {:#?}", e);
+        Err(Error {
+            kind: ErrorKind::Internal,
+            msg: String::from("Couldn't open directory with profile configs"),
+            cause: Some(Box::new(e)),
+        })
+    })?;
 
     let mut profile_configs = vec![];
 
     // go through each entry, check that it's a JSON and try to desrialize it
-    while let Some(entry) = dir.next_entry()
-            .await
-            .or_else(|e| {
-                log::error!("Couldn't get netx dir entry because {:#?}", e);
-                Err(Error {
-                    kind: ErrorKind::Internal,
-                    msg: String::from("Couldn't read directory entry"),
-                    cause: Some(Box::new(e))
-                })
-            })? 
-    {
+    while let Some(entry) = dir.next_entry().await.or_else(|e| {
+        log::error!("Couldn't get netx dir entry because {:#?}", e);
+        Err(Error {
+            kind: ErrorKind::Internal,
+            msg: String::from("Couldn't read directory entry"),
+            cause: Some(Box::new(e)),
+        })
+    })? {
         let path = entry.path();
 
         // check that it's a JSON
@@ -84,7 +79,9 @@ pub struct ProfileConfigs {
 
 /// Returns a vector of the [ProfileConfig]s that are found inside te directory specified in the [GeneralConfig]
 #[get("/profiles")]
-pub async fn get_profile_configs(general_config: &State<GeneralConfig>) -> Result<(Status, Json<Vec<ProfileConfig>>), APIError> {
+pub async fn get_profile_configs(
+    general_config: &State<GeneralConfig>,
+) -> Result<(Status, Json<Vec<ProfileConfig>>), APIError> {
     let dir = &general_config.profile_configs;
 
     let profile_configs = read_profile_configs(dir)
@@ -92,4 +89,28 @@ pub async fn get_profile_configs(general_config: &State<GeneralConfig>) -> Resul
         .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
 
     Ok((Status::Ok, Json(profile_configs)))
+}
+
+/// Returns the [ProfileConfig] with the specified `name` or a `404` if it doesn't exist
+#[get("/profiles/name/<name>")]
+pub async fn get_profile_config_by_name(
+    general_config: &State<GeneralConfig>,
+    name: String,
+) -> Result<(Status, Json<ProfileConfig>), APIError> {
+    let dir = &general_config.profile_configs;
+
+    let profile_configs = read_profile_configs(dir)
+        .await
+        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+
+    let target_config = profile_configs
+        .into_iter()
+        .find(|config| config.name == name)
+        .ok_or_else(|| {
+            let msg = format!("No ProfileConfig with the name {:?} was found", name);
+            log::warn!("{}", msg);
+            (Status::NotFound, msg)
+        })?;
+
+    Ok((Status::Ok, Json(target_config)))
 }
