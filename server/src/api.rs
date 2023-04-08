@@ -117,6 +117,43 @@ pub async fn get_profile_config_by_name(
     Ok((Status::Ok, Json(target_config)))
 }
 
+/// Deletes the [ProfileConfig] with the given name.
+#[delete("/profiles/name/<name>")]
+pub async fn delete_profile_config_by_name(
+    general_config: &State<GeneralConfig>,
+    name: String,
+) -> Result<Status, APIError> {
+    let dir = &general_config.profile_configs;
+
+    let profile_configs = read_profile_configs(dir)
+        .await
+        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+
+    let target_config = profile_configs
+        .into_iter()
+        .find(|config| config.name == name)
+        .ok_or_else(|| {
+            let msg = format!("No ProfileConfig with the name {:?} was found", name);
+            log::warn!("{}", msg);
+            (Status::NotFound, msg)
+        })?;
+    
+    let filename = target_config.get_uuid().as_hyphenated().to_string() + ".json";
+    let path = dir.join(filename);
+
+    fs::remove_file(&path)
+        .await
+        .or_else(|e| {
+            log::error!("Couldn't delete file {:?} because {:#?}", path, e);
+            match e.kind() {
+                std::io::ErrorKind::NotFound => Ok(()),
+                _ => Err((Status::InternalServerError, format!("Couldn't remove ProfileConfig with name {:?}", name)))
+            }
+        })?;
+
+    Ok(Status::NoContent)
+}
+
 #[get("/profiles/uuid/<uuid>")]
 pub async fn get_profile_config_by_uuid(
     general_config: &State<GeneralConfig>,
