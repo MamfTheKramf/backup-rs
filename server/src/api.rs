@@ -1,6 +1,7 @@
 use std::ffi::OsStr;
 use std::path::PathBuf;
 
+use config::interval::IntervalBuilder;
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
 use rocket::http::Status;
 use rocket::serde::{json::Json, Serialize};
@@ -121,12 +122,13 @@ pub async fn get_profile_config_by_uuid(
     general_config: &State<GeneralConfig>,
     uuid: String,
 ) -> Result<(Status, Json<ProfileConfig>), APIError> {
-    
-    let uuid = Uuid::parse_str(&uuid)
-        .or_else(|e| {
-            log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
-            Err((Status::BadRequest, format!("{:?} is not a valid uuid", uuid)))
-        })?;
+    let uuid = Uuid::parse_str(&uuid).or_else(|e| {
+        log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
+        Err((
+            Status::BadRequest,
+            format!("{:?} is not a valid uuid", uuid),
+        ))
+    })?;
 
     let dir = &general_config.profile_configs;
 
@@ -144,4 +146,54 @@ pub async fn get_profile_config_by_uuid(
         })?;
 
     Ok((Status::Ok, Json(target_config)))
+}
+
+/// Tries to create a new profile config with the given name.
+///
+/// # Returns
+/// On success: The created profile config
+/// On error: An error describing the issue
+#[post("/profiles/create/<name>")]
+pub async fn create_blank_profile_config(
+    general_config: &State<GeneralConfig>,
+    name: String,
+) -> Result<(Status, Json<ProfileConfig>), APIError> {
+    let dir = &general_config.profile_configs;
+
+    let profile_configs = read_profile_configs(dir)
+        .await
+        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+
+    let name_already_taken = profile_configs.iter().any(|config| config.name == name);
+    if name_already_taken {
+        return Err((
+            Status::Conflict,
+            format!("Name {:?} is already taken", name),
+        ));
+    }
+
+    let none_interval = IntervalBuilder::default()
+            .minutes(config::interval::SpecifierKind::None)
+            .build()
+            .or_else(|e| {
+                log::error!("Couldn't build none_interval because {:#?}", e);
+                Err((Status::InternalServerError, String::from("Unexpected Error")))
+            })?;
+    let profile_config = ProfileConfig::new(
+        name,
+        PathBuf::from(""),
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        none_interval
+    );
+
+    profile_config.store(dir)
+        .or_else(|e| {
+            log::error!("Couldn't store new ProfileConfig because {:#?}", e);
+            Err((Status::InternalServerError, String::from("Unexpected Error")))
+        })?;
+    
+    Ok((Status::Created, Json(profile_config)))
 }
