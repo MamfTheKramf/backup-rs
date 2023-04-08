@@ -197,6 +197,40 @@ pub async fn get_profile_config_by_uuid(
     Ok((Status::Ok, Json(target_config)))
 }
 
+// Deletes [ProfileConfig] with the given uuid
+#[delete("/profiles/uuid/<uuid>")]
+pub async fn delete_profile_config_by_uuid(
+    general_config: &State<GeneralConfig>,
+    uuid: String,
+) -> Result<Status, APIError> {
+    let uuid = Uuid::parse_str(&uuid).or_else(|e| {
+        log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
+        Err((
+            Status::BadRequest,
+            format!("{:?} is not a valid uuid", uuid),
+        ))
+    })?;
+
+    let dir = &general_config.profile_configs;
+
+    let profile_configs = read_profile_configs(dir)
+        .await
+        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+
+    let target_config = profile_configs
+        .into_iter()
+        .find(|config| config.get_uuid() == &uuid)
+        .ok_or_else(|| {
+            let msg = format!("No ProfileConfig with the uuid {:?} was found", uuid);
+            log::warn!("{}", msg);
+            (Status::NotFound, msg)
+        })?;
+
+    delete_profile_config(dir, target_config).await?;
+
+    Ok(Status::NoContent)
+}
+
 /// Tries to create a new profile config with the given name.
 ///
 /// # Returns
