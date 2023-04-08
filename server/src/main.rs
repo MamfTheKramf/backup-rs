@@ -55,7 +55,8 @@ fn rocket() -> _ {
                 api::get_profile_config_dir,
                 api::get_profile_configs,
                 api::get_profile_config_by_name,
-                api::get_profile_config_by_uuid
+                api::get_profile_config_by_uuid,
+                api::create_blank_profile_config
             ],
         )
 }
