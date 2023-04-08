@@ -105,6 +105,11 @@ impl ProfileConfig {
         &self.uuid
     }
 
+    /// Sets the `uuid`
+    pub fn set_uuid(&mut self, uuid: Uuid) {
+        self.uuid = uuid
+    }
+
     /// Gets the [NaiveDateTime] for the next backup, either based on its own `next_backup` value or based on `from_datetime` if [Some] was given.
     ///
     /// # Returns
