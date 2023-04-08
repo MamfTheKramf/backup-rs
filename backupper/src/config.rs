@@ -30,7 +30,7 @@ pub fn load_general_config(path: Option<&str>) -> Result<GeneralConfig, String> 
         ));
     }
 
-    match GeneralConfig::read(&path) {
+    match GeneralConfig::read(path) {
         Err(e) => Err(e.to_string()),
         Ok(config) => Ok(config),
     }
