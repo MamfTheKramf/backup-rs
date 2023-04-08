@@ -117,6 +117,29 @@ pub async fn get_profile_config_by_name(
     Ok((Status::Ok, Json(target_config)))
 }
 
+/// Tries to delete the JSON file of that profile config
+async fn delete_profile_config(
+    json_dir: &PathBuf,
+    profile_config: ProfileConfig,
+) -> Result<(), APIError> {
+    let filename = profile_config.get_uuid().as_hyphenated().to_string() + ".json";
+    let path = json_dir.join(filename);
+
+    fs::remove_file(&path).await.or_else(|e| {
+        log::error!("Couldn't delete file {:?} because {:#?}", path, e);
+        match e.kind() {
+            std::io::ErrorKind::NotFound => Ok(()),
+            _ => Err((
+                Status::InternalServerError,
+                format!(
+                    "Couldn't remove ProfileConfig with name {:?}",
+                    profile_config.name
+                ),
+            )),
+        }
+    })
+}
+
 /// Deletes the [ProfileConfig] with the given name.
 #[delete("/profiles/name/<name>")]
 pub async fn delete_profile_config_by_name(
@@ -137,19 +160,8 @@ pub async fn delete_profile_config_by_name(
             log::warn!("{}", msg);
             (Status::NotFound, msg)
         })?;
-    
-    let filename = target_config.get_uuid().as_hyphenated().to_string() + ".json";
-    let path = dir.join(filename);
 
-    fs::remove_file(&path)
-        .await
-        .or_else(|e| {
-            log::error!("Couldn't delete file {:?} because {:#?}", path, e);
-            match e.kind() {
-                std::io::ErrorKind::NotFound => Ok(()),
-                _ => Err((Status::InternalServerError, format!("Couldn't remove ProfileConfig with name {:?}", name)))
-            }
-        })?;
+    delete_profile_config(dir, target_config).await?;
 
     Ok(Status::NoContent)
 }
@@ -210,12 +222,15 @@ pub async fn create_blank_profile_config(
     }
 
     let none_interval = IntervalBuilder::default()
-            .minutes(config::interval::SpecifierKind::None)
-            .build()
-            .or_else(|e| {
-                log::error!("Couldn't build none_interval because {:#?}", e);
-                Err((Status::InternalServerError, String::from("Unexpected Error")))
-            })?;
+        .minutes(config::interval::SpecifierKind::None)
+        .build()
+        .or_else(|e| {
+            log::error!("Couldn't build none_interval because {:#?}", e);
+            Err((
+                Status::InternalServerError,
+                String::from("Unexpected Error"),
+            ))
+        })?;
     let profile_config = ProfileConfig::new(
         name,
         PathBuf::from(""),
@@ -223,14 +238,16 @@ pub async fn create_blank_profile_config(
         vec![],
         vec![],
         vec![],
-        none_interval
+        none_interval,
     );
 
-    profile_config.store(dir)
-        .or_else(|e| {
-            log::error!("Couldn't store new ProfileConfig because {:#?}", e);
-            Err((Status::InternalServerError, String::from("Unexpected Error")))
-        })?;
-    
+    profile_config.store(dir).or_else(|e| {
+        log::error!("Couldn't store new ProfileConfig because {:#?}", e);
+        Err((
+            Status::InternalServerError,
+            String::from("Unexpected Error"),
+        ))
+    })?;
+
     Ok((Status::Created, Json(profile_config)))
 }
