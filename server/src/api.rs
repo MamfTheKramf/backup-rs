@@ -285,3 +285,47 @@ pub async fn create_blank_profile_config(
 
     Ok((Status::Created, Json(profile_config)))
 }
+
+/// Updates the [ProfileConfig] with the given `uuid`. The `uuid` and the `next-backup` field won't be considered for updating
+#[put("/profiles/uuid/<uuid>", data="<new_config>")]
+pub async fn update_profile_config(
+    general_config: &State<GeneralConfig>,
+    uuid: String,
+    new_config: Json<ProfileConfig>
+) -> Result<(Status, Json<ProfileConfig>), APIError> {
+    let uuid = Uuid::parse_str(&uuid).or_else(|e| {
+        log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
+        Err((
+            Status::BadRequest,
+            format!("{:?} is not a valid uuid", uuid),
+        ))
+    })?;
+
+    let dir = &general_config.profile_configs;
+
+    let profile_configs = read_profile_configs(dir)
+        .await
+        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+
+    let target_config = profile_configs
+        .into_iter()
+        .find(|config| config.get_uuid() == &uuid)
+        .ok_or_else(|| {
+            let msg = format!("No ProfileConfig with the uuid {:?} was found", uuid);
+            log::warn!("{}", msg);
+            (Status::NotFound, msg)
+        })?;
+
+    let mut new_config = new_config.0;
+
+    new_config.set_uuid(uuid);
+    new_config.next_backup = target_config.next_backup;
+
+    new_config.store(dir)
+        .or_else(|e| {
+            log::error!("Couldn't store ProfileConfig {:?} because {:#?}", new_config.get_uuid(), e);
+            Err((Status::InternalServerError, String::from("Unexpected Error")))
+        })?;
+
+    Ok((Status::Ok, Json(new_config)))
+}
