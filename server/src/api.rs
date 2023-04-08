@@ -6,6 +6,7 @@ use rocket::http::Status;
 use rocket::serde::{json::Json, Serialize};
 use rocket::tokio::fs;
 use rocket::State;
+use uuid::Uuid;
 
 use crate::errors::{Error, ErrorKind};
 
@@ -108,6 +109,36 @@ pub async fn get_profile_config_by_name(
         .find(|config| config.name == name)
         .ok_or_else(|| {
             let msg = format!("No ProfileConfig with the name {:?} was found", name);
+            log::warn!("{}", msg);
+            (Status::NotFound, msg)
+        })?;
+
+    Ok((Status::Ok, Json(target_config)))
+}
+
+#[get("/profiles/uuid/<uuid>")]
+pub async fn get_profile_config_by_uuid(
+    general_config: &State<GeneralConfig>,
+    uuid: String,
+) -> Result<(Status, Json<ProfileConfig>), APIError> {
+    
+    let uuid = Uuid::parse_str(&uuid)
+        .or_else(|e| {
+            log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
+            Err((Status::BadRequest, format!("{:?} is not a valid uuid", uuid)))
+        })?;
+
+    let dir = &general_config.profile_configs;
+
+    let profile_configs = read_profile_configs(dir)
+        .await
+        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+
+    let target_config = profile_configs
+        .into_iter()
+        .find(|config| config.get_uuid() == &uuid)
+        .ok_or_else(|| {
+            let msg = format!("No ProfileConfig with the uuid {:?} was found", uuid);
             log::warn!("{}", msg);
             (Status::NotFound, msg)
         })?;
