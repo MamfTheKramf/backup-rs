@@ -3,4 +3,5 @@
 members = [
     "config",
     "backupper",
+    "server",
 ]
