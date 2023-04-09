@@ -1,6 +1,7 @@
 mod common;
 mod backup;
 mod restore;
+mod reschedule;
 mod cli_args;
 mod config;
 mod dialog;
@@ -10,6 +11,7 @@ use std::{process::exit};
 
 use backup::handle_profile;
 use dialog::info_dialog;
+use reschedule::reschedule;
 use restore::restore;
 
 use crate::config::soft_load_profile_configs;
@@ -70,6 +72,9 @@ fn main() {
                 restore(&profile_config, timestamp, &args);
             }
         },
+        cli_args::Commands::Reschedule => for mut profile_config in profile_configs {
+            reschedule(&mut profile_config, &general_config);
+        }
     }
 
     if let Some(orig_path) = orig_path {

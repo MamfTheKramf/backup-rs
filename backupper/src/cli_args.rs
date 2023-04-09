@@ -45,7 +45,10 @@ pub enum Commands {
     Backup,
 
     /// Restore a backup
-    Restore(Restore)
+    Restore(Restore),
+
+    /// Reschedule the backup of the given profile
+    Reschedule,
 }
 
 #[derive(clap::Args)]
