@@ -301,6 +301,11 @@ pub async fn update_profile_config(
         ))
     })?;
 
+    if let Err(msg) = new_config.interval.validate() {
+        log::warn!("Got invalid interval: {:?}", msg);
+        return Err((Status::BadRequest, msg));
+    }
+
     let dir = &general_config.profile_configs;
 
     let profile_configs = read_profile_configs(dir)
