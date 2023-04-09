@@ -70,6 +70,10 @@ fn main() {
                 restore(&profile_config, timestamp, &args);
             }
         },
+        cli_args::Commands::Reschedule => {
+            info_dialog("Not Implemented", "The feature is not implemented yet");
+        },
+        
     }
 
     if let Some(orig_path) = orig_path {
