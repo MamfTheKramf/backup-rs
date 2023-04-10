@@ -11,6 +11,16 @@ pub struct Args {
     #[arg(long, default_value_t = String::from("./logging_conf.yaml"))]
     pub logger_config: String,
 
+    #[cfg(windows)]
+    #[arg(short, long, default_value_t = String::from("./backupper.exe"))]
+    /// Path to executable of backupper
+    pub backupper: String,
+
+    #[cfg(unix)]
+    #[arg(short, long, default_value_t = String::from("./backupper"))]
+    /// Path to executable of backupper
+    pub backupper: String,
+
     /// Whether to show rocket_cli_colors or not
     #[arg(short, long)]
     pub rocket_colors: bool,

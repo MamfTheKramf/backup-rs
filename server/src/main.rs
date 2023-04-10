@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::{Command, self}};
 
-use cli_args::parse_args;
+use cli_args::{parse_args, Args};
 use config::general_config::GeneralConfig;
 use log::info;
 
@@ -26,12 +26,34 @@ fn init_logger(path: &PathBuf) {
     }
 }
 
+/// Checks if the path to the backupper executable is valid by trying to call the `-V` command.
+fn check_backupper(args: &Args) -> bool {
+    let backupper_path = PathBuf::from(&args.backupper);
+    let result = Command::new(backupper_path)
+        .arg("-V")
+        .output();
+
+    match result {
+        Ok(output) => {
+            log::info!("Output of \"{} -V\": {:?}", &args.backupper, output);
+            true
+        },
+        Err(e) => {
+            log::error!("Couldn't execute backupper: {:?}", e);
+            false
+        },
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     let args = parse_args();
     init_logger(&PathBuf::from(&args.logger_config));
     info!("CLI-Args: {:#?}", args);
 
+    if !check_backupper(&args) {
+        process::exit(1);
+    }
     std::env::set_var("ROCKET_CLI_COLORS", format!("{}", args.rocket_colors));
 
     let general_config = match GeneralConfig::read(&PathBuf::from(&args.general_config)) {
