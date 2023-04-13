@@ -240,10 +240,7 @@ mod config_tests {
 
     impl MockProfileSpecifier {
         pub fn new(name: Option<String>, uuid: Option<String>) -> MockProfileSpecifier {
-            MockProfileSpecifier {
-                name,
-                uuid,
-            }
+            MockProfileSpecifier { name, uuid }
         }
 
         pub fn with_name(name: Option<String>) -> MockProfileSpecifier {
@@ -266,6 +263,85 @@ mod config_tests {
 
         fn uuid(&self) -> Option<&str> {
             self.uuid.as_ref().map(|uuid| uuid.as_str())
+        }
+    }
+
+    mod matches_specifier_tests {
+        use config::interval::IntervalBuilder;
+
+        use super::*;
+
+        #[test]
+        fn no_profile_config() {
+            let specifier = MockProfileSpecifier::with_none();
+            assert!(matches_specifier(None, &specifier).is_none());
+        }
+
+        #[test]
+        fn name_matching() {
+            let specifier = MockProfileSpecifier::with_name(Some(String::from("Hutzi")));
+            let profile_config = ProfileConfig::new(
+                String::from("Hutzi"),
+                PathBuf::from(""),
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                IntervalBuilder::default().build().unwrap(),
+            );
+
+            assert!(matches_specifier(Some(profile_config), &specifier).is_some());
+        }
+
+        #[test]
+        fn name_not_matching() {
+            let specifier = MockProfileSpecifier::with_name(Some(String::from("Flubo")));
+            let profile_config = ProfileConfig::new(
+                String::from("Hutzi"),
+                PathBuf::from(""),
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                IntervalBuilder::default().build().unwrap(),
+            );
+
+            assert!(matches_specifier(Some(profile_config), &specifier).is_none())
+        }
+
+        #[test]
+        fn uuid_matches() {
+            let profile_config = ProfileConfig::new(
+                String::from("Hutzi"),
+                PathBuf::from(""),
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                IntervalBuilder::default().build().unwrap(),
+            );
+            let specifier =
+                MockProfileSpecifier::with_uuid(Some(format!("{:?}", profile_config.get_uuid())));
+
+            assert!(matches_specifier(Some(profile_config), &specifier).is_some())
+        }
+
+        #[test]
+        fn uuid_not_matches() {
+            let profile_config = ProfileConfig::new(
+                String::from("Hutzi"),
+                PathBuf::from(""),
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                IntervalBuilder::default().build().unwrap(),
+            );
+            let specifier = MockProfileSpecifier::with_uuid(Some(String::from(
+                "3aec32f2-90e8-4b9a-a32e-07f3a9c2a1c9",
+            )));
+
+            assert!(matches_specifier(Some(profile_config), &specifier).is_none())
         }
     }
 
@@ -318,7 +394,9 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let specifier = MockProfileSpecifier::with_uuid(Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")));
+            let specifier = MockProfileSpecifier::with_uuid(Some(String::from(
+                "6f41ec8a-da22-4e77-9a9c-50d18556375f",
+            )));
             let configs = soft_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 1);
@@ -386,7 +464,9 @@ mod config_tests {
             let config = GeneralConfig {
                 profile_configs: path,
             };
-            let specifier = MockProfileSpecifier::with_uuid(Some(String::from("6f41ec8a-da22-4e77-9a9c-50d18556375f")));
+            let specifier = MockProfileSpecifier::with_uuid(Some(String::from(
+                "6f41ec8a-da22-4e77-9a9c-50d18556375f",
+            )));
             let configs = hard_load_profile_configs(&config, &specifier).unwrap();
 
             assert_eq!(configs.len(), 1);
