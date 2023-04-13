@@ -3,6 +3,7 @@ use std::{path::PathBuf, process::{Command, self}};
 use cli_args::{parse_args, Args};
 use config::general_config::GeneralConfig;
 use log::info;
+use rocket::fs::FileServer;
 
 #[macro_use]
 extern crate rocket;
@@ -10,11 +11,6 @@ extern crate rocket;
 mod api;
 mod cli_args;
 mod errors;
-
-#[get("/")]
-async fn index() -> &'static str {
-    "Hello"
-}
 
 fn init_logger(path: &PathBuf) {
     match log4rs::init_file(path, Default::default()) {
@@ -71,7 +67,7 @@ fn rocket() -> _ {
     rocket::build()
         .manage(general_config)
         .manage(PathBuf::from(&args.backupper))
-        .mount("/", routes![index])
+        .mount("/", FileServer::from(&args.frontend))
         .mount(
             "/api",
             routes![

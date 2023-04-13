@@ -21,6 +21,10 @@ pub struct Args {
     /// Path to executable of backupper
     pub backupper: String,
 
+    /// Path to the directory that stores the frontend files
+    #[arg(long, default_value_t = String::from("./frontend"))]
+    pub frontend: String,
+
     /// Whether to show rocket_cli_colors or not
     #[arg(short, long)]
     pub rocket_colors: bool,
