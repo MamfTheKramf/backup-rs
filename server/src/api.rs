@@ -1,5 +1,5 @@
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 use config::interval::IntervalBuilder;
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
@@ -287,11 +287,12 @@ pub async fn create_blank_profile_config(
 }
 
 /// Updates the [ProfileConfig] with the given `uuid`. The `uuid` and the `next-backup` field won't be considered for updating
-#[put("/profiles/uuid/<uuid>", data="<new_config>")]
+#[put("/profiles/uuid/<uuid>", data = "<new_config>")]
 pub async fn update_profile_config(
     general_config: &State<GeneralConfig>,
+    backupper_path: &State<PathBuf>,
     uuid: String,
-    new_config: Json<ProfileConfig>
+    new_config: Json<ProfileConfig>,
 ) -> Result<(Status, Json<ProfileConfig>), APIError> {
     let uuid = Uuid::parse_str(&uuid).or_else(|e| {
         log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
@@ -326,11 +327,35 @@ pub async fn update_profile_config(
     new_config.set_uuid(uuid);
     new_config.next_backup = target_config.next_backup;
 
-    new_config.store(dir)
-        .or_else(|e| {
-            log::error!("Couldn't store ProfileConfig {:?} because {:#?}", new_config.get_uuid(), e);
-            Err((Status::InternalServerError, String::from("Unexpected Error")))
-        })?;
+    if new_config.interval != target_config.interval {
+        log::info!("Rescheduling ProfileConfig {:?}", new_config.get_uuid());
+        let output = rocket::tokio::process::Command::new(backupper_path.as_os_str())
+            .arg("-u")
+            .arg(new_config.get_uuid().to_string())
+            .arg("reschedule")
+            .output()
+            .await;
+        log::debug!("{:#?}", output);
+        match output {
+            Ok(output) => match output.status.code() {
+                Some(x) if x == 0 => log::debug!("Rescheduling of ProfileConfig {:?} successful", new_config.get_uuid()),
+                _ => log::warn!("Rescheduling of ProfileConfig {:?} failed. Error: {:#?}", new_config.get_uuid(), output)
+            },
+            Err(e) => log::warn!("Rescheduling of ProfileConfig {:?} failed. Error: {:#?}", new_config.get_uuid(), e)
+        }
+    }
+
+    new_config.store(dir).or_else(|e| {
+        log::error!(
+            "Couldn't store ProfileConfig {:?} because {:#?}",
+            new_config.get_uuid(),
+            e
+        );
+        Err((
+            Status::InternalServerError,
+            String::from("Unexpected Error"),
+        ))
+    })?;
 
     Ok((Status::Ok, Json(new_config)))
 }

@@ -70,6 +70,7 @@ fn rocket() -> _ {
 
     rocket::build()
         .manage(general_config)
+        .manage(PathBuf::from(&args.backupper))
         .mount("/", routes![index])
         .mount(
             "/api",
