@@ -1,5 +1,5 @@
 use std::ffi::OsStr;
-use std::path::{PathBuf, Path};
+use std::path::PathBuf;
 
 use config::interval::IntervalBuilder;
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
