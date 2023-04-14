@@ -8,8 +8,9 @@ import { ProfileConfig } from './profile-config';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
-  title = 'frontend';
+  title = 'Backupper';
   profileConfigs: ProfileConfig[] = [];
+  selected?: ProfileConfig;
 
   constructor(private api: ApiServiceService) {}
 
@@ -23,5 +24,9 @@ export class AppComponent implements OnInit {
         console.log(configs);
         this.profileConfigs = configs.sort((a, b) => a.name.localeCompare(b.name));
       });
+  }
+
+  onSelect(choice: ProfileConfig): void {
+    this.selected = choice;
   }
 }

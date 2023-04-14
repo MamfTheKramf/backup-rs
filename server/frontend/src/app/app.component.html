@@ -1,2 +1,9 @@
-<app-side-nav [profileConfigs]="profileConfigs"></app-side-nav>
-<div class="main"></div>
+<app-side-nav [profileConfigs]="profileConfigs" (selected)="onSelect($event)"></app-side-nav>
+<div class="main">
+    <p>
+        {{selected?.name}}
+    </p>
+    <p>
+        {{selected?.uuid}}
+    </p>
+</div>

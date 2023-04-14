@@ -2,7 +2,7 @@
     Backupper
 </h1>
 <div class="configs">
-    <a *ngFor="let config of profileConfigs">
+    <a *ngFor="let config of profileConfigs" [class.selected]="config.uuid === selectedUuid" (click)="select(config)">
         {{ config.name }}
     </a>
 </div>

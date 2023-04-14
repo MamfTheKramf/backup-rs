@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ProfileConfig } from '../profile-config';
 
 @Component({
@@ -8,4 +8,12 @@ import { ProfileConfig } from '../profile-config';
 })
 export class SideNavComponent {
   @Input() profileConfigs: ProfileConfig[] = [];
+  selectedUuid = '';
+  @Output() selected = new EventEmitter<ProfileConfig>();
+
+  select(config: ProfileConfig): void {
+    this.selectedUuid = config.uuid;
+    this.selected.emit(config);
+  }
+
 }
