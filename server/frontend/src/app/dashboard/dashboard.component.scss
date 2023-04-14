@@ -1,21 +1,21 @@
 @import '../../vars';
 
-:host {
-    flex-grow: 1;
+.header {
+    padding: 1rem 0;
 
-    text-align: center;
+    border-bottom: 1px solid $light-gray;
 }
 
 .configs {
-    margin-top: 2rem;
+    margin-top: 1rem;
 
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-evenly;
     gap: 1rem;
 
     .config-card {
         padding: 1rem;
+        text-align: left;
 
         background-color: $secondary;
         color: $primary;
