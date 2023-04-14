@@ -14,10 +14,14 @@ export class AppComponent implements OnInit {
   constructor(private api: ApiServiceService) {}
 
   ngOnInit(): void {
+    this.getProfileConfigs();
+  }
+
+  getProfileConfigs(): void {
     this.api.getProfileConfigs()
       .subscribe(configs => {
         console.log(configs);
-        this.profileConfigs = configs;
+        this.profileConfigs = configs.sort((a, b) => a.name.localeCompare(b.name));
       });
   }
 }

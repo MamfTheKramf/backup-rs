@@ -1,5 +1,36 @@
 @import '../../vars';
 
-p {
-    color: $primary;
+:host {
+    background-color: $gray;
+    color: white;
+
+    padding: 4px;
+}
+
+h1 {
+    margin-bottom: 4px;
+}
+
+.configs {
+    display: flex;
+    flex-direction: column;
+    gap: .2em 0;
+
+    border-top: 1px solid $light-gray;
+
+    padding-top: .2em;
+
+    a {
+        padding-left: 4px;
+        font-size: 1.2em;
+
+        transition: background-color $transition-time, color $transition-time;
+
+        &:hover {
+            background-color: white;
+            color: $dark-gray;
+
+            cursor: pointer;
+        }
+    }
 }
