@@ -1,0 +1,40 @@
+@import '../../vars';
+
+:host {
+    flex-grow: 1;
+
+    text-align: center;
+}
+
+.configs {
+    margin-top: 2rem;
+
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    gap: 1rem;
+
+    .config-card {
+        padding: 1rem;
+
+        background-color: $secondary;
+        color: $primary;
+
+        transition: background-color $transition-time, color $transition-time;
+
+        &:hover {
+            background-color: $primary;
+            color: white;
+
+            cursor: pointer;
+        }
+
+        h4 {
+            font-size: 1.2em;
+        }
+
+        p {
+            font-size: .8em;
+        }
+    }
+}

@@ -1,9 +1,5 @@
 <app-side-nav [profileConfigs]="profileConfigs" (selected)="onSelect($event)"></app-side-nav>
-<div class="main">
-    <p>
-        {{selected?.name}}
-    </p>
-    <p>
-        {{selected?.uuid}}
-    </p>
-</div>
+<app-config-editor *ngIf="selected; else dashboard" [profileConfig]="selected"></app-config-editor>
+<ng-template #dashboard>
+    <app-dashboard [profileConfigs]="profileConfigs" (selected)="onSelect($event)"></app-dashboard>
+</ng-template>

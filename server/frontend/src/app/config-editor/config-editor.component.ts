@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { ProfileConfig } from '../profile-config';
 
 @Component({
   selector: 'app-config-editor',
@@ -6,5 +7,5 @@ import { Component } from '@angular/core';
   styleUrls: ['./config-editor.component.scss']
 })
 export class ConfigEditorComponent {
-
+  @Input() profileConfig!: ProfileConfig;
 }
