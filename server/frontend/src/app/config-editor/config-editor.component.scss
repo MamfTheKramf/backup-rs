@@ -2,4 +2,11 @@
 
 :host {
     flex-grow: 1;
+    padding: 8px;
+}
+
+h2 {
+    .uuid {
+        font-size: .7em;
+    }
 }
