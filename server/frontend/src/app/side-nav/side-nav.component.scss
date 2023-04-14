@@ -1,8 +1,8 @@
 @import '../../vars';
 
 :host {
-    background-color: $gray;
-    color: white;
+    color: $dark-gray;
+    border-right: 1px solid $primary;
 
     padding: 0 8px;
 }
@@ -29,12 +29,11 @@ h1 {
         &.selected {
             font-weight: bolder;
             font-style: italic;
-            color: $secondary;
         }
 
         &:hover {
-            background-color: white;
-            color: $dark-gray;
+            background-color: $secondary;
+            color: $primary;
 
             cursor: pointer;
         }
