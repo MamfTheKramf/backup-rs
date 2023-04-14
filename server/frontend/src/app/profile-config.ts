@@ -35,4 +35,5 @@ export type ProfileConfig = {
     files_to_exclude: string[],
     dirs_to_exclude: string[],
     interval: Interval,
+    next_backup: string,
 };

@@ -1,0 +1,50 @@
+@import "../../../vars";
+
+:host {
+    display: block;
+    position: relative;
+
+    border: 1px solid $light-gray;
+    border-radius: 8px;
+
+    padding: 1rem;
+}
+
+h3 {
+    position: absolute;
+    top: -0.8em;
+    left: 1em;
+
+    background-color: $background;
+    padding: 0 4px;
+}
+
+.fields {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    column-gap: 3em;
+
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: .3em 0;
+
+        flex-grow: 1;
+
+        input {
+            width: 100%;
+        }
+    }
+
+    label {
+        font-weight: bold;
+        color: $primary;
+        font-size: 1.2em;
+    }
+
+    .value {
+        display: block;
+    }
+}
