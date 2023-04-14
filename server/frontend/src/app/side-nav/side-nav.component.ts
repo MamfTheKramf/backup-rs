@@ -9,10 +9,10 @@ import { ProfileConfig } from '../profile-config';
 export class SideNavComponent {
   @Input() profileConfigs: ProfileConfig[] = [];
   selectedUuid = '';
-  @Output() selected = new EventEmitter<ProfileConfig>();
+  @Output() selected = new EventEmitter<ProfileConfig | undefined>();
 
-  select(config: ProfileConfig): void {
-    this.selectedUuid = config.uuid;
+  select(config?: ProfileConfig): void {
+    this.selectedUuid = config?.uuid ?? '';
     this.selected.emit(config);
   }
 

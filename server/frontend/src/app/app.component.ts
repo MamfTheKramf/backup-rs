@@ -31,8 +31,8 @@ export class AppComponent implements OnInit {
       });
   }
 
-  onSelect(choice: ProfileConfig): void {
+  onSelect(choice?: ProfileConfig): void {
     this.selected = choice;
-    this.sideNav.selectedUuid = this.selected.uuid;
+    this.sideNav.selectedUuid = this.selected?.uuid ?? '';
   }
 }
