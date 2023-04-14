@@ -1,13 +1,24 @@
-@import '../../vars';
+@import "../../vars";
 
 :host {
     padding: 8px;
 }
 
-h2 {
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+
     margin-bottom: 1rem;
 
-    .uuid {
-        font-size: .7em;
+    h2 {
+        .uuid {
+            font-size: 0.7em;
+        }
+    }
+
+    .buttons {
+        display: flex;
+        column-gap: 1em;
     }
 }

@@ -1,5 +1,12 @@
-<h2>
-    Profil: <span class="name">{{profileConfig.name}}</span>&nbsp;<span class="uuid">({{profileConfig.uuid}})</span>
-</h2>
+<div class="header">
+    <h2>
+        Profil: <span class="name">{{profileConfig.name}}</span>&nbsp;<span class="uuid">({{profileConfig.uuid}})</span>
+    </h2>
+    <div class="buttons">
+        <button class="green">Speichern</button>
+        <button class="purple">Backup Starten</button>
+    </div>
+</div>
+
 
 <app-config-info [profileConfig]="profileConfig"></app-config-info>
