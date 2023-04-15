@@ -8,8 +8,9 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
+    row-gap: 1em;
 
-    margin-bottom: 1rem;
+    margin-bottom: 2em;
 
     h2 {
         .uuid {
@@ -26,7 +27,7 @@
 .sections {
     display: flex;
     flex-direction: column;
-    row-gap: 1em;
+    row-gap: 2em;
 
     .editor-section {
         display: block;
