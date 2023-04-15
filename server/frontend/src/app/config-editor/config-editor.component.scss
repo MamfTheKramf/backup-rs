@@ -23,21 +23,27 @@
     }
 }
 
-.editor-section {
-    display: block;
-    position: relative;
+.sections {
+    display: flex;
+    flex-direction: column;
+    row-gap: 1em;
 
-    border: 1px solid $light-gray;
-    border-radius: 8px;
+    .editor-section {
+        display: block;
+        position: relative;
 
-    padding: 1rem;
+        border: 1px solid $light-gray;
+        border-radius: 8px;
 
-    h3 {
-        position: absolute;
-        top: -0.8em;
-        left: 1em;
+        padding: 1rem;
 
-        background-color: $background;
-        padding: 0 4px;
+        h3 {
+            position: absolute;
+            top: -0.8em;
+            left: 1em;
+
+            background-color: $background;
+            padding: 0 4px;
+        }
     }
 }

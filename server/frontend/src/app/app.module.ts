@@ -8,6 +8,7 @@ import { SideNavComponent } from './side-nav/side-nav.component';
 import { ConfigEditorComponent } from './config-editor/config-editor.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { ConfigInfoComponent } from './config-editor/config-info/config-info.component';
+import { FileSelectionComponent } from './config-editor/file-selection/file-selection.component';
 
 @NgModule({
   declarations: [
@@ -15,7 +16,8 @@ import { ConfigInfoComponent } from './config-editor/config-info/config-info.com
     SideNavComponent,
     ConfigEditorComponent,
     DashboardComponent,
-    ConfigInfoComponent
+    ConfigInfoComponent,
+    FileSelectionComponent
   ],
   imports: [
     BrowserModule,
