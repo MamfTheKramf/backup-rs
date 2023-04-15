@@ -22,3 +22,22 @@
         column-gap: 1em;
     }
 }
+
+.editor-section {
+    display: block;
+    position: relative;
+
+    border: 1px solid $light-gray;
+    border-radius: 8px;
+
+    padding: 1rem;
+
+    h3 {
+        position: absolute;
+        top: -0.8em;
+        left: 1em;
+
+        background-color: $background;
+        padding: 0 4px;
+    }
+}
