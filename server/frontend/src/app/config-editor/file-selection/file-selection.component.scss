@@ -1,0 +1,23 @@
+@import '../../../vars';
+
+.selections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(max(400px, 45%), 2fr));
+
+    gap: 1em;
+
+    div {
+        padding: 8px;
+
+        border-radius: 8px;
+
+        &.include {
+            background-color: #d5ffc5;
+        }
+
+        &.exclude {
+            background-color: #ffc5c5;
+        }
+    }
+}
+

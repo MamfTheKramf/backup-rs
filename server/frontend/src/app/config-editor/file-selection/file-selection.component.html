@@ -1,1 +1,18 @@
-<p>file-selection works!</p>
+<div class="selections">
+    <div class="files-to-include include">
+        <h4>Dateien hinzufügen</h4>
+        <app-text-list [list]="profileConfig.files_to_include" [placeholder]="'Dateipfad'"></app-text-list>
+    </div>
+    <div class="dirs-to-include include">
+        <h4>Ordner hinzufügen</h4>
+        <app-text-list [list]="profileConfig.dirs_to_include" [placeholder]="'Ordnerpfad'"></app-text-list>
+    </div>
+    <div class="files-to-exclude exclude">
+        <h4>Dateien ausschließen</h4>
+        <app-text-list [list]="profileConfig.files_to_exclude" [placeholder]="'Dateipfad'"></app-text-list>
+    </div>
+    <div class="dirs-to-exclude exclude">
+        <h4>Ordner ausschließen</h4>
+        <app-text-list [list]="profileConfig.dirs_to_exclude" [placeholder]="'Ordnerpfad'"></app-text-list>
+    </div>
+</div>

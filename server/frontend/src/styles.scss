@@ -35,12 +35,23 @@ button {
     }
 
     &.purple {
-        color: #22003a;
-        border-color: #22003a;
+        color: $dark-purple; 
+        border-color: $dark-purple;
 
         &:hover {
-            background-color: #22003a;
-            color: #b650ff;
+            background-color: $dark-purple;
+            color: $light-purple;
+        }
+    }
+
+    &.red {
+        color: $dark-red;
+        background-color: $light-red;
+        border-color: $dark-red;
+
+        &:hover {
+            color: $light-red;
+            background-color: $dark-red;
         }
     }
 

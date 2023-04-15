@@ -9,6 +9,7 @@ import { ConfigEditorComponent } from './config-editor/config-editor.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { ConfigInfoComponent } from './config-editor/config-info/config-info.component';
 import { FileSelectionComponent } from './config-editor/file-selection/file-selection.component';
+import { TextListComponent } from './config-editor/text-list/text-list.component';
 
 @NgModule({
   declarations: [
@@ -17,7 +18,8 @@ import { FileSelectionComponent } from './config-editor/file-selection/file-sele
     ConfigEditorComponent,
     DashboardComponent,
     ConfigInfoComponent,
-    FileSelectionComponent
+    FileSelectionComponent,
+    TextListComponent
   ],
   imports: [
     BrowserModule,
