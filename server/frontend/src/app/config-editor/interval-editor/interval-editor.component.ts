@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { ProfileConfig } from 'src/app/profile-config';
 
 @Component({
   selector: 'app-interval-editor',
@@ -6,5 +7,5 @@ import { Component } from '@angular/core';
   styleUrls: ['./interval-editor.component.scss']
 })
 export class IntervalEditorComponent {
-
+  @Input() profileConfig!: ProfileConfig;
 }

@@ -11,6 +11,7 @@ import { ConfigInfoComponent } from './config-editor/config-info/config-info.com
 import { FileSelectionComponent } from './config-editor/file-selection/file-selection.component';
 import { TextListComponent } from './config-editor/text-list/text-list.component';
 import { IntervalEditorComponent } from './config-editor/interval-editor/interval-editor.component';
+import { SpecifierEditorComponent } from './config-editor/interval-editor/specifier-editor/specifier-editor.component';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { IntervalEditorComponent } from './config-editor/interval-editor/interva
     ConfigInfoComponent,
     FileSelectionComponent,
     TextListComponent,
-    IntervalEditorComponent
+    IntervalEditorComponent,
+    SpecifierEditorComponent
   ],
   imports: [
     BrowserModule,
