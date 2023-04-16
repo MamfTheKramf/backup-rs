@@ -5,12 +5,24 @@
         </option>
     </select>
 </div>
-<div class="options">
+<div class="options" *ngIf="!['None', 'All', 'First', 'Last'].includes(selectedKind)">
     <p>
         Optionen:
     </p>
     <div *ngIf="selectedKind === 'Nth' || selectedKind === 'BackNth'">
         <input type="number" [min]="specifierRange('min')" [max]="specifierRange('max')"
             [value]="specifierValue(selectedKind)" (input)="updateValue($event, selectedKind)">
+    </div>
+    <div *ngIf="selectedKind === 'EveryNth'">
+        <div>
+            <label for="n">N:</label>
+            <input id="n" type="number" [min]="0" [max]="specifierRange('max')" [value]="specifierValue('EveryNth.0')"
+                (input)="updateValue($event, 'EveryNth.0')">
+        </div>
+        <div>
+            <label for="offset">Offset:</label>
+            <input type="number" [min]="0" [max]="specifierRange('max')" [value]="specifierValue('EveryNth.1', false)"
+                (input)="updateValue($event, 'EveryNth.1', false)">
+        </div>
     </div>
 </div>

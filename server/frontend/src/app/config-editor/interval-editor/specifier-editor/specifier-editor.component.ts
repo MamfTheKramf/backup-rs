@@ -36,18 +36,24 @@ export class SpecifierEditorComponent<MIN, MAX> implements OnInit {
     this.specifier.kind = newKind;
   }
 
-  updateValue(event: Event, targetValue: string): void {
+  updateValue(event: Event, targetValue: string, applyOffset = true): void {
     console.log(event);
     const target = event.target as HTMLInputElement;
     if (!target.checkValidity()) {
       console.log('Not updateing invalid change');
       return;
     }
-    const newValue = Number(target.value) - this.offset;
+    const newValue = Number(target.value) - (applyOffset ? this.offset : 0);
+
     console.log(`Updateing ${targetValue} to ${newValue}`);
     if (Object.hasOwn(this.specifier.kind as object, targetValue)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.specifier.kind as any)[targetValue] = newValue;
+    }
+    if (this.selectedKind === 'EveryNth' && targetValue.startsWith('EveryNth')) {
+      const index = Number(targetValue.split('.')[1]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.specifier.kind as any)['EveryNth'][index] = newValue;
     }
    
   }
@@ -96,28 +102,37 @@ export class SpecifierEditorComponent<MIN, MAX> implements OnInit {
     }
   }
 
-  specifierRange(end: 'min' | 'max'): number {
+  specifierRange(end: 'min' | 'max', applyOffset = true): number {
     const value = (end === 'min' ?
       this.specifier.min :
       this.specifier.max) as object;
     
+    let ret: number | undefined;
     if (typeof value === 'number') {
-      return value + this.offset;
+      ret = value;
     }
     if (isDay(value)) {
-      return value.day + this.offset;
+      ret = value.day;
     }
     if (isMonth(value)) {
-      return value.month + this.offset;
+      ret = value.month;
     }
 
-    return 0;
+    if (ret === undefined) {
+      return 0;
+    }
+    return ret + (applyOffset ? this.offset : 0);
   }
 
-  specifierValue(targetValue: string): number {
+  specifierValue(targetValue: string, applyOffset = true): number {
     if (Object.hasOwn(this.specifier.kind as object, targetValue)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (this.specifier.kind as any)[targetValue] as number + this.offset;
+      return (this.specifier.kind as any)[targetValue] as number + (applyOffset ? this.offset : 0);
+    }
+    if (this.selectedKind === 'EveryNth' && targetValue.startsWith('EveryNth')) {
+      const index = Number(targetValue.split('.')[1]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (this.specifier.kind as any)['EveryNth'][index] as number + (applyOffset ? this.offset : 0);
     }
     return 0;
   }
