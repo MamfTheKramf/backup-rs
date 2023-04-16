@@ -73,4 +73,10 @@ input {
 
         border-color: $primary;
     }
+
+    &:invalid {
+        border-color: $dark-red;
+        background-color: $light-red;
+        color: $dark-red;
+    }
 }

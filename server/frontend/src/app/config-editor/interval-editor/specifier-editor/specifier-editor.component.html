@@ -1,1 +1,16 @@
-<p>specifier-editor works!</p>
+<div class="selector">
+    <label for="kind-selector">Typ:</label>
+    <select id="kind-selector" [(ngModel)]="selectedKind" (change)="changeKind()">
+        <option *ngFor="let kind of specifierKinds" [value]="kind" [selected]="kind === selectedKind">{{ kind }}
+        </option>
+    </select>
+</div>
+<div class="options">
+    <p>
+        Optionen:
+    </p>
+    <div *ngIf="selectedKind === 'Nth' || selectedKind === 'BackNth'">
+        <input type="number" [min]="specifierRange('min')" [max]="specifierRange('max')"
+            [value]="specifierValue(selectedKind)" (input)="updateValue($event, selectedKind)">
+    </div>
+</div>

@@ -6,16 +6,38 @@ export type SpecifierKind = 'None' | 'All' | 'First' | 'Last'
     | { EveryNth: [number, number] }
     | { ExplicitList: number[] };
 
+export const SPECIFIER_KINDS = [
+    'None',
+    'All',
+    'First',
+    'Last',
+    'Nth',
+    'BackNth',
+    'ExplicitNths',
+    'EveryNth',
+    'ExplicitList'
+];
+
 export type Specifier<MIN, MAX> = {
     min: MIN,
     max: MAX,
     kind: SpecifierKind
 };
 
+export type Day = { day: number };
+export type Month = { month: number };
 export type Monday = { day: 0 };
 export type Sunday = { day: 6 };
 export type January = { month: 0 };
 export type December = { month: 11 };
+
+export function isDay(unknownType: object): unknownType is Day {
+    return Object.hasOwn(unknownType, 'day');
+}
+
+export function isMonth(unknownType: object): unknownType is Month {
+    return Object.hasOwn(unknownType, 'month');
+}
 
 export type Interval = {
     minutes: Specifier<0, 59>,
