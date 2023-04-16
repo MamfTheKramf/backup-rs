@@ -10,6 +10,7 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { ConfigInfoComponent } from './config-editor/config-info/config-info.component';
 import { FileSelectionComponent } from './config-editor/file-selection/file-selection.component';
 import { TextListComponent } from './config-editor/text-list/text-list.component';
+import { IntervalEditorComponent } from './config-editor/interval-editor/interval-editor.component';
 
 @NgModule({
   declarations: [
@@ -19,7 +20,8 @@ import { TextListComponent } from './config-editor/text-list/text-list.component
     DashboardComponent,
     ConfigInfoComponent,
     FileSelectionComponent,
-    TextListComponent
+    TextListComponent,
+    IntervalEditorComponent
   ],
   imports: [
     BrowserModule,
