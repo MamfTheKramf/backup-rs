@@ -25,4 +25,7 @@
                 (input)="updateValue($event, 'EveryNth.1', false)">
         </div>
     </div>
+    <div *ngIf="selectedKind === 'ExplicitNths' || selectedKind === 'ExplicitList'">
+        <app-number-list [minimum]="specifierRange('min')" [maximum]="specifierRange('max')" [offset]="offset" [list]="specifierList(selectedKind)"></app-number-list>
+    </div>
 </div>

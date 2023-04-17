@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Day, Month, SPECIFIER_KINDS, Specifier, SpecifierKind, isDay, isMonth } from 'src/app/profile-config';
+import { SPECIFIER_KINDS, Specifier, SpecifierKind, isDay, isMonth } from 'src/app/profile-config';
 
 @Component({
   selector: 'app-specifier-editor',
@@ -135,5 +135,13 @@ export class SpecifierEditorComponent<MIN, MAX> implements OnInit {
       return (this.specifier.kind as any)['EveryNth'][index] as number + (applyOffset ? this.offset : 0);
     }
     return 0;
+  }
+
+  specifierList(targetList: string): number[] {
+    if (Object.hasOwn(this.specifier.kind as object, targetList)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (this.specifier.kind as any)[targetList] as number[];
+    }
+    return [];
   }
 }
