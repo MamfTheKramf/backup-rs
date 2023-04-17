@@ -24,6 +24,20 @@ export class ApiServiceService {
     );
   }
 
+  createBlankProfileConfig(name: string): Observable<ProfileConfig | undefined> {
+    const httpOptions = {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    };
+
+    return this.http.post<ProfileConfig | undefined>(`/api/profiles/create/${name}`, null, httpOptions).pipe(
+      catchError(err => {
+        console.error('Couldn\' create new ProfileConfig. Got:');
+        console.error(err);
+        return of(undefined);
+      })
+    );
+  }
+
   /**
    * Updates the provided `ProfileConfig`
    * @returns The version of the `ProfileConfig` that is now stored
