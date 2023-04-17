@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
 import { ProfileConfig } from './profile-config';
 
@@ -20,6 +20,23 @@ export class ApiServiceService {
         console.error('Got error:');
         console.error(err);
         return of([]);
+      })
+    );
+  }
+
+  /**
+   * Updates the provided `ProfileConfig`
+   * @returns The version of the `ProfileConfig` that is now stored
+   */
+  updateProfileConfigs(profileConfig: ProfileConfig): Observable<ProfileConfig> {
+    const httpOptions = {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    };
+    return this.http.put<ProfileConfig>(`/api/profiles/uuid/${profileConfig.uuid}`, profileConfig, httpOptions).pipe(
+      catchError(err => {
+        console.error('Couldn\'t update profileConfig, got:');
+        console.error(err);
+        return of(profileConfig);
       })
     );
   }

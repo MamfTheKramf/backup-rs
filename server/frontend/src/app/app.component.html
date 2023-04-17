@@ -1,6 +1,6 @@
 <app-side-nav [profileConfigs]="profileConfigs" (selected)="onSelect($event)"></app-side-nav>
 <main>
-    <app-config-editor *ngIf="selected; else dashboard" [profileConfig]="selected"></app-config-editor>
+    <app-config-editor *ngIf="selected; else dashboard" [profileConfig]="selected" (reload)="reload($event)"></app-config-editor>
     <ng-template #dashboard>
         <app-dashboard [profileConfigs]="profileConfigs" (selected)="onSelect($event)"></app-dashboard>
     </ng-template>

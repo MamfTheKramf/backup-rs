@@ -38,4 +38,13 @@ export class AppComponent implements OnInit {
     this.selected = choice;
     this.sideNav.selectedUuid = this.selected?.uuid ?? '';
   }
+
+  reload(doReload: boolean): void {
+    if (!doReload) {
+      return;
+    }
+    const currUuid = this.selected?.uuid ?? '';
+    this.getProfileConfigs();
+    this.onSelect(this.profileConfigs.find(candidate => candidate.uuid === currUuid));
+  }
 }

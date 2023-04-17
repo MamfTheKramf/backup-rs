@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ProfileConfig } from '../profile-config';
+import { ApiServiceService } from '../api-service.service';
 
 @Component({
   selector: 'app-config-editor',
@@ -8,4 +9,15 @@ import { ProfileConfig } from '../profile-config';
 })
 export class ConfigEditorComponent {
   @Input() profileConfig!: ProfileConfig;
+  @Output() reload = new EventEmitter<boolean>;
+
+  constructor(private readonly api: ApiServiceService) {}
+
+  store(): void {
+    this.api.updateProfileConfigs(this.profileConfig)
+      .subscribe(config => {
+        console.log(config)
+        this.reload.emit(true);
+      });
+  }
 }
