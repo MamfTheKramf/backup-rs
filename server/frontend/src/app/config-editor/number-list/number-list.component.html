@@ -1,5 +1,5 @@
 <ul>
-    <li *ngFor="let element of list; index as i">
+    <li *ngFor="let element of list; index as i; trackBy: trackByFn">
         <input type="number" [min]="minimum" [max]="maximum" [value]="getElement(i)" (input)="updateElement($event, i)" placeholder="{{ placeholder }}">
         <button (click)="removeElement(i)" title="Entferne Element" class="red">X</button>
     </li>

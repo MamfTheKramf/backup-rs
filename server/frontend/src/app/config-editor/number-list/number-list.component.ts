@@ -41,4 +41,9 @@ export class NumberListComponent {
   getElement(index: number): number {
     return this.list[index] + this.offset;
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  trackByFn(index: number, item: unknown): number {
+    return index;
+  }
 }

@@ -16,4 +16,9 @@ export class TextListComponent {
   removeElement(index: number): void {
     this.list.splice(index, 1)
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  trackByFn(index: number, item: unknown): number {
+    return index;
+  }
 }
