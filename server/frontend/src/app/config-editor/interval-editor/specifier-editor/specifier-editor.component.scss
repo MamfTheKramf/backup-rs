@@ -1,0 +1,18 @@
+@import '../../../../vars';
+
+.selector {
+    margin-bottom: 2px;
+}
+
+.selector, .options {
+    margin-left: 8px;
+}
+
+.label {
+    font-weight: bolder;
+}
+
+input, select {
+    display: block;
+    margin-top: 2px;
+}

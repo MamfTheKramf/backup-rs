@@ -1,12 +1,12 @@
 <div class="selector">
-    <label for="kind-selector">Typ:</label>
+    <label for="kind-selector" class="label">Typ:</label>
     <select id="kind-selector" [(ngModel)]="selectedKind" (change)="changeKind()">
         <option *ngFor="let kind of specifierKinds" [value]="kind" [selected]="kind === selectedKind">{{ kind }}
         </option>
     </select>
 </div>
 <div class="options" *ngIf="!['None', 'All', 'First', 'Last'].includes(selectedKind)">
-    <p>
+    <p class="label">
         Optionen:
     </p>
     <div *ngIf="selectedKind === 'Nth' || selectedKind === 'BackNth'">
