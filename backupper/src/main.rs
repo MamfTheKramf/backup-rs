@@ -74,6 +74,10 @@ fn main() {
         },
         cli_args::Commands::Reschedule => for mut profile_config in profile_configs {
             reschedule(&mut profile_config, &general_config);
+        },
+        cli_args::Commands::Delete(delete_params) => {
+            println!("args: {:?}", delete_params.remove_backups);
+            println!("Not implemented yet");
         }
     }
 
