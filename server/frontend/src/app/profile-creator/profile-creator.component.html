@@ -1,5 +1,5 @@
 <h2>Neues Profil:</h2>
 
-<input type="text" [(ngModel)]="name" placeholder="Profilname">
+<input type="text" [(ngModel)]="name" (keyup)="keyPress($event)" placeholder="Profilname">
 
 <button (click)="create()" class="green">Erstellen</button>

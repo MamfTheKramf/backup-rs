@@ -31,4 +31,14 @@ export class ProfileCreatorComponent {
         this.created.emit(config);
       });
   }
+
+  keyPress(event: Event): void {
+    if (event.type !== 'keyup') {
+      return;
+    }
+
+    if ((event as KeyboardEvent).key === 'Enter') {
+      this.create();
+    }
+  }
 }
