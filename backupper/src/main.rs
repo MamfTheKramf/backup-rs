@@ -2,12 +2,13 @@ mod common;
 mod backup;
 mod restore;
 mod reschedule;
+mod delete;
 mod cli_args;
 mod config;
 mod dialog;
 mod scheduler;
 
-use std::{process::exit};
+use std::process::exit;
 
 use backup::handle_profile;
 use dialog::info_dialog;
@@ -74,6 +75,11 @@ fn main() {
         },
         cli_args::Commands::Reschedule => for mut profile_config in profile_configs {
             reschedule(&mut profile_config, &general_config);
+        },
+        cli_args::Commands::Delete(delete_params) => {
+            for profile_config in profile_configs {
+                delete::delete(&profile_config, &general_config, delete_params.remove_backups);
+            }
         }
     }
 

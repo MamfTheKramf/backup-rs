@@ -111,12 +111,12 @@ unsafe fn set_up_action(action_collection: &IActionCollection, uuid: Uuid) -> Re
         .or(Err("Couldn't cast action"))?;
 
     let err = Err("Couldn't get path to current exectable");
-    let path = format!("{:?}\0", std::env::current_exe().or(err)?);
+    let path = format!("{}\0", std::env::current_exe().or(err)?.display());
     action
         .SetPath(&BSTR::from(path))
         .or(Err("Couldn't set executable path"))?;
 
-    let args = format!("-u {}", uuid.as_hyphenated().to_string());
+    let args = format!("-u {} backup\0", uuid.as_hyphenated().to_string());
     action
         .SetArguments(&BSTR::from(args))
         .or(Err("Couldn't set arguments for action"))?;
@@ -198,6 +198,41 @@ pub fn schedule_backup(uuid: Uuid, date_time: NaiveDateTime) -> Result<(), Strin
                 VARIANT::default(),
             )
             .or_else(|_| transform_err("Couldn't register task definition"))?;
+    }
+    Ok(())
+}
+
+pub fn unschedule_backup(uuid: Uuid) -> Result<(), String> {
+    let folder_name = BSTR::from("\\backup-rs\0");
+    let task_name = BSTR::from(uuid.as_hyphenated().to_string() + "\0");
+
+    unsafe {
+        #[allow(non_snake_case)]
+        let CLSID_ITaskService = CLSIDFromProgID(w!("Schedule.Service"))
+            .or_else(|_| transform_err("Couldn't get CLSID of Schedule.Service"))?;
+
+        if let Err(_) = CoInitializeEx(None, COINIT_MULTITHREADED) {
+            return transform_err("Couldn't initialize");
+        }
+
+        let service: ITaskService =
+            CoCreateInstance(&CLSID_ITaskService, None, CLSCTX_INPROC_SERVER)
+                .or_else(|_| transform_err("Couldn't get ITaskService"))?;
+
+        service
+            .Connect(
+                VARIANT::default(),
+                VARIANT::default(),
+                VARIANT::default(),
+                VARIANT::default(),
+            )
+            .or_else(|_| transform_err("Couldn't connect ITaskService"))?;
+
+        let task_folder = get_task_folder(&service, &BSTR::from(folder_name))
+            .or_else(|_| transform_err("Couldn't create task folder"))?;
+        
+        task_folder.DeleteTask(&task_name, 0)
+            .or(Err(String::from("Couldn't delete task")))?;
     }
     Ok(())
 }

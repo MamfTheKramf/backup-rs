@@ -49,6 +49,9 @@ pub enum Commands {
 
     /// Reschedule the backup of the given profile
     Reschedule,
+
+    /// Delete the given profile
+    Delete(Delete),
 }
 
 #[derive(clap::Args)]
@@ -56,6 +59,13 @@ pub struct Restore {
     /// Format: "YYYY-MM-DD HH:MM". Timestamp that has to be preceeded by the backup. If not set, the latest backup is chosen.
     #[arg(short, long, value_parser = valid_time_format)]
     pub timestamp: Option<NaiveDateTime>,
+}
+
+#[derive(clap::Args)]
+pub struct Delete {
+    /// Remove the already created backup files as well
+    #[arg(short, long)]
+    pub remove_backups: bool,
 }
 
 /// Checks that the provided string is in format `YYYY-MM-DD HH:MM`.
