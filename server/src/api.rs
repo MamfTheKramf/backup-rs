@@ -247,7 +247,7 @@ pub async fn create_blank_profile_config(
         .await
         .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
 
-    let name_already_taken = profile_configs.iter().any(|config| config.name == name);
+    let name_already_taken = profile_configs.iter().any(|config| config.name.to_lowercase() == name.to_lowercase());
     if name_already_taken {
         return Err((
             Status::Conflict,
@@ -313,6 +313,20 @@ pub async fn update_profile_config(
         .await
         .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
 
+    let mut new_config = new_config.0;
+
+    // check that name isn't already taken
+    let name_already_taken = profile_configs.iter().any(|config| {
+        config.get_uuid() != new_config.get_uuid()
+            && config.name.to_lowercase() == new_config.name.to_lowercase()
+    });
+    if name_already_taken {
+        return Err((
+            Status::Conflict,
+            format!("Name {:?} is already taken", new_config.name),
+        ));
+    }
+
     let target_config = profile_configs
         .into_iter()
         .find(|config| config.get_uuid() == &uuid)
@@ -321,8 +335,6 @@ pub async fn update_profile_config(
             log::warn!("{}", msg);
             (Status::NotFound, msg)
         })?;
-
-    let mut new_config = new_config.0;
 
     new_config.set_uuid(uuid);
     new_config.next_backup = target_config.next_backup;
@@ -351,10 +363,21 @@ pub async fn update_profile_config(
         log::debug!("{:#?}", output);
         match output {
             Ok(output) => match output.status.code() {
-                Some(x) if x == 0 => log::debug!("Rescheduling of ProfileConfig {:?} successful", new_config.get_uuid()),
-                _ => log::warn!("Rescheduling of ProfileConfig {:?} failed. Error: {:#?}", new_config.get_uuid(), output)
+                Some(x) if x == 0 => log::debug!(
+                    "Rescheduling of ProfileConfig {:?} successful",
+                    new_config.get_uuid()
+                ),
+                _ => log::warn!(
+                    "Rescheduling of ProfileConfig {:?} failed. Error: {:#?}",
+                    new_config.get_uuid(),
+                    output
+                ),
             },
-            Err(e) => log::warn!("Rescheduling of ProfileConfig {:?} failed. Error: {:#?}", new_config.get_uuid(), e)
+            Err(e) => log::warn!(
+                "Rescheduling of ProfileConfig {:?} failed. Error: {:#?}",
+                new_config.get_uuid(),
+                e
+            ),
         }
     }
 
