@@ -26,6 +26,8 @@ export class ProfileCreatorComponent {
           return;
         }
 
+        this.name = '';
+
         this.created.emit(config);
       });
   }
