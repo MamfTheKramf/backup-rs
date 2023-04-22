@@ -17,17 +17,21 @@ export class AppComponent implements OnInit {
   profileConfigs: ProfileConfig[] = [];
   selected?: ProfileConfig;
 
-  constructor(private api: ApiServiceService) {}
+  constructor(private api: ApiServiceService) { }
 
   ngOnInit(): void {
     this.getProfileConfigs();
   }
 
-  getProfileConfigs(): void {
+  getProfileConfigs(callback?: () => unknown): void {
     this.api.getProfileConfigs()
       .subscribe(configs => {
         console.log(configs);
         this.profileConfigs = configs.sort((a, b) => a.name.localeCompare(b.name));
+
+        if (callback) {
+          callback();
+        }
       });
   }
 
@@ -41,7 +45,8 @@ export class AppComponent implements OnInit {
       return;
     }
     const currUuid = this.selected?.uuid ?? '';
-    this.getProfileConfigs();
-    this.onSelect(this.profileConfigs.find(candidate => candidate.uuid === currUuid));
+    this.getProfileConfigs(() => {
+      this.onSelect(this.profileConfigs.find(candidate => candidate.uuid === currUuid));
+    });
   }
 }

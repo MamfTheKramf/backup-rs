@@ -20,4 +20,10 @@ export class ConfigEditorComponent {
         this.reload.emit(true);
       });
   }
+
+  delete(): void {
+    this.api.deleteProfileConfig(this.profileConfig.uuid).subscribe(() => {
+      this.reload.emit(true);
+    });
+  }
 }
