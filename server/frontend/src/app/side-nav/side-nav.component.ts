@@ -10,10 +10,16 @@ export class SideNavComponent {
   @Input() profileConfigs: ProfileConfig[] = [];
   selectedUuid = '';
   @Output() selected = new EventEmitter<ProfileConfig | undefined>();
+  @Output() reload = new EventEmitter<boolean>();
 
   select(config?: ProfileConfig): void {
     this.selectedUuid = config?.uuid ?? '';
     this.selected.emit(config);
+  }
+
+  created(config: ProfileConfig): void {
+    this.reload.emit(true);
+    this.select(config);
   }
 
 }

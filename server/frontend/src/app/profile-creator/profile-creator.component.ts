@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 import { ProfileConfig } from '../profile-config';
+import { ApiServiceService } from '../api-service.service';
 
 @Component({
   selector: 'app-profile-creator',
@@ -11,7 +12,21 @@ export class ProfileCreatorComponent {
 
   name = '';
 
+  constructor(private readonly api: ApiServiceService) {}
+
   create(): void {
     console.log(this.name);
+    if (!this.name) {
+      return;
+    }
+
+    this.api.createBlankProfileConfig(this.name)
+      .subscribe(config => {
+        if (!config) {
+          return;
+        }
+
+        this.created.emit(config);
+      });
   }
 }
