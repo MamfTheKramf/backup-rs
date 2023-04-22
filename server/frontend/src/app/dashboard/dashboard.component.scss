@@ -1,0 +1,40 @@
+@import '../../vars';
+
+.header {
+    padding: 1rem 0;
+
+    border-bottom: 1px solid $light-gray;
+}
+
+.configs {
+    margin-top: 1rem;
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    .config-card {
+        padding: 1rem;
+        text-align: left;
+
+        background-color: $secondary;
+        color: $primary;
+
+        transition: background-color $transition-time, color $transition-time;
+
+        &:hover {
+            background-color: $primary;
+            color: white;
+
+            cursor: pointer;
+        }
+
+        h4 {
+            font-size: 1.2em;
+        }
+
+        p {
+            font-size: .8em;
+        }
+    }
+}

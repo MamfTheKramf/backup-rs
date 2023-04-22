@@ -1,0 +1,33 @@
+@import '../../../vars';
+
+.editors {
+    .time, .date {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 1em;
+    }
+
+    .time {
+        padding-bottom: 1em;
+        margin-bottom: 1em;
+
+        border-bottom: 1px solid $light-gray;
+    }
+
+    .editor {
+        flex-grow: 1;
+        flex-basis: 300px;
+
+        background-color: $x-light-gray;
+        padding: 8px;
+
+        border-radius: 8px;
+
+        h4 {
+            font-size: 1.1em;
+            margin-bottom: 4px;
+        }
+    }
+}

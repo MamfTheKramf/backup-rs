@@ -1,0 +1,31 @@
+<div class="selector">
+    <label for="kind-selector" class="label">Typ:</label>
+    <select id="kind-selector" [(ngModel)]="selectedKind" (change)="changeKind()">
+        <option *ngFor="let kind of specifierKinds" [value]="kind" [selected]="kind === selectedKind">{{ kind }}
+        </option>
+    </select>
+</div>
+<div class="options" *ngIf="!['None', 'All', 'First', 'Last'].includes(selectedKind)">
+    <p class="label">
+        Optionen:
+    </p>
+    <div *ngIf="selectedKind === 'Nth' || selectedKind === 'BackNth'">
+        <input type="number" [min]="specifierRange('min')" [max]="specifierRange('max')"
+            [value]="specifierValue(selectedKind)" (input)="updateValue($event, selectedKind)">
+    </div>
+    <div *ngIf="selectedKind === 'EveryNth'">
+        <div>
+            <label for="n">N:</label>
+            <input id="n" type="number" [min]="0" [max]="specifierRange('max')" [value]="specifierValue('EveryNth.0')"
+                (input)="updateValue($event, 'EveryNth.0')">
+        </div>
+        <div>
+            <label for="offset">Offset:</label>
+            <input type="number" [min]="0" [max]="specifierRange('max')" [value]="specifierValue('EveryNth.1', false)"
+                (input)="updateValue($event, 'EveryNth.1', false)">
+        </div>
+    </div>
+    <div *ngIf="selectedKind === 'ExplicitNths' || selectedKind === 'ExplicitList'">
+        <app-number-list [minimum]="specifierRange('min')" [maximum]="specifierRange('max')" [offset]="offset" [list]="specifierList(selectedKind)"></app-number-list>
+    </div>
+</div>

@@ -1,0 +1,50 @@
+@import "../../vars";
+
+:host {
+    padding: 8px;
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    row-gap: 1em;
+
+    margin-bottom: 2em;
+
+    h2 {
+        .uuid {
+            font-size: 0.7em;
+        }
+    }
+
+    .buttons {
+        display: flex;
+        column-gap: 1em;
+    }
+}
+
+.sections {
+    display: flex;
+    flex-direction: column;
+    row-gap: 2em;
+
+    .editor-section {
+        display: block;
+        position: relative;
+
+        border: 1px solid $light-gray;
+        border-radius: 8px;
+
+        padding: 1rem;
+
+        h3 {
+            position: absolute;
+            top: -0.8em;
+            left: 1em;
+
+            background-color: $background;
+            padding: 0 4px;
+        }
+    }
+}

@@ -1,0 +1,82 @@
+/* You can add global styles to this file, and also import other style files */
+@import "vars";
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: $background;
+    color: $gray;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+        sans-serif;
+}
+
+button {
+    padding: 0.5rem;
+    font-size: 1.2em;
+
+    border-width: 2px;
+    border-style: solid;
+
+    transition: background-color $transition-time, color $transition-time;
+
+    &.green {
+        color: $primary;
+        border-color: $primary;
+
+        &:hover {
+            background-color: $primary;
+            color: $secondary;
+        }
+    }
+
+    &.purple {
+        color: $dark-purple; 
+        border-color: $dark-purple;
+
+        &:hover {
+            background-color: $dark-purple;
+            color: $light-purple;
+        }
+    }
+
+    &.red {
+        color: $dark-red;
+        background-color: $light-red;
+        border-color: $dark-red;
+
+        &:hover {
+            color: $light-red;
+            background-color: $dark-red;
+        }
+    }
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+input {
+    border: unset;
+    border-bottom: 2px solid $secondary;
+
+    padding: 4px;
+
+    transition: border-color $transition-time;
+
+    &:focus {
+        outline: unset;
+
+        border-color: $primary;
+    }
+
+    &:invalid {
+        border-color: $dark-red;
+        background-color: $light-red;
+        color: $dark-red;
+    }
+}

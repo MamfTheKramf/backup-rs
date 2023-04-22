@@ -1,0 +1,30 @@
+<div class="header">
+    <h2>
+        Profil: <span class="name">{{profileConfig.name}}</span>&nbsp;<span class="uuid">({{profileConfig.uuid}})</span>
+    </h2>
+    <div class="buttons">
+        <button class="green" (click)="store()">Speichern</button>
+        <button class="purple">Backup Starten</button>
+    </div>
+</div>
+
+<div class="sections">
+    <div class="editor-section">
+        <h3>
+            Profil-Informationen
+        </h3>
+        <app-config-info [profileConfig]="profileConfig"></app-config-info>
+    </div>
+    <div class="editor-section">
+        <h3>
+            Zieldateien
+        </h3>
+        <app-file-selection [profileConfig]="profileConfig"></app-file-selection>
+    </div>
+    <div class="editor-section">
+        <h3>
+            Intervall
+        </h3>
+        <app-interval-editor [profileConfig]="profileConfig"></app-interval-editor>
+    </div>
+</div>

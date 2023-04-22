@@ -1,0 +1,14 @@
+<div class="header">
+    <h2>
+        Backupper &mdash; Dashboard
+    </h2>
+    <h3>
+        Wähle ein Profil aus, das bearbeitet werden soll.
+    </h3>
+</div>
+<div class="configs">
+    <div *ngFor="let config of profileConfigs" (click)="onSelect(config)" class="config-card">
+        <h4>{{ config.name }}</h4>
+        <p>{{ config.uuid }}</p>
+    </div>
+</div>

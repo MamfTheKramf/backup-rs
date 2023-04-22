@@ -1,0 +1,36 @@
+@import '../../../vars';
+
+li {
+    list-style-type: none;
+
+    margin: .2em 0;
+
+    display: flex;
+    flex-direction: row;
+    column-gap: 4px;
+
+    input {
+        border: 1px solid $light-gray;
+        border-radius: 4px;
+
+        padding: 8px 4px;
+
+        flex-grow: 1;
+
+        transition: background-color $transition-time, color $transition-time;
+
+        &:hover {
+            background-color: $light-gray;
+        }
+
+        &:focus {
+            border-color: black;
+            background-color: $dark-gray;
+            color: $x-light-gray;
+        }
+    }
+}
+
+button {
+    padding: 4px;
+}

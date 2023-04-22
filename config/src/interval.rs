@@ -9,7 +9,7 @@ mod weekdays;
 
 use chrono::{Datelike, Days, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use derive_builder::Builder;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub use self::{
     date_time_match::DateTimeMatch,
@@ -47,7 +47,7 @@ pub struct Interval {
     )]
     pub weekdays: Specifier<weekdays::Weekday>,
 
-    /// Range 0-32
+    /// Range 0-31
     #[builder(
         default = "Specifier::new(*MONTHDAYS_RANGE.start(), *MONTHDAYS_RANGE.end(), SpecifierKind::All)",
         setter(custom)
@@ -108,6 +108,71 @@ impl Interval {
             Ok(interval) => Ok(interval),
             Err(err) => Err(err.to_string()),
         }
+    }
+
+    /// Checks that the [Specifier]s all have the correct ranges.
+    /// This is already enforced when using the [IntervalBuilder]. However, when deserializing a JSON there might be some wrong values.
+    ///
+    /// # Returns
+    /// [Ok] if everything is alright.
+    /// [Err] describing a missconfigured specifier. It will only report one specifier hat a time.
+    ///
+    /// # Example
+    /// ```
+    /// use config::interval::*;
+    ///
+    /// let interval = Interval {
+    ///     minutes: Specifier::new(0, 59, SpecifierKind::All),
+    ///     hours: Specifier::new(0, 23, SpecifierKind::All),
+    ///     weekdays: Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All),
+    ///     monthdays: Specifier::new(0, 31, SpecifierKind::All),
+    ///     weeks: Specifier::new(0, 52, SpecifierKind::All),
+    ///     months: Specifier::new(Month::January(), Month::December(), SpecifierKind::All)
+    /// };
+    /// assert!(interval.validate().is_ok());
+    ///
+    /// let bad_interval = Interval {
+    ///     minutes: Specifier::new(0, 100, SpecifierKind::All),
+    ///     hours: Specifier::new(0, 23, SpecifierKind::All),
+    ///     weekdays: Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All),
+    ///     monthdays: Specifier::new(0, 31, SpecifierKind::All),
+    ///     weeks: Specifier::new(0, 52, SpecifierKind::All),
+    ///     months: Specifier::new(Month::January(), Month::December(), SpecifierKind::All)
+    /// };
+    /// assert!(bad_interval.validate().is_err());
+    /// ```
+    pub fn validate(&self) -> Result<(), String> {
+        let own_range = self.minutes.min()..=self.minutes.max();
+        if own_range != MINUTES_RANGE {
+            return Err(format!("Minutes are not in range {:?}. Got {:?}", MINUTES_RANGE, own_range));
+        }
+
+        let own_range = self.hours.min()..=self.hours.max();
+        if own_range != HOURS_RANGE {
+            return Err(format!("Hours are not in range {:?}. Got {:?}", HOURS_RANGE, own_range));
+        }
+
+        let own_range = self.weekdays.min()..=self.weekdays.max();
+        if own_range != WEEKDAYS_RANGE {
+            return Err(format!("Weekdays are not in range {:?}. Got {:?}", WEEKDAYS_RANGE, own_range));
+        }
+
+        let own_range = self.monthdays.min()..=self.monthdays.max();
+        if own_range != MONTHDAYS_RANGE {
+            return Err(format!("Monthdays are not in range {:?}. Got {:?}", MONTHDAYS_RANGE, own_range));
+        }
+
+        let own_range = self.weeks.min()..=self.weeks.max();
+        if own_range != WEEKS_RANGE {
+            return Err(format!("Weeks are not in range {:?}. Got {:?}", WEEKS_RANGE, own_range));
+        }
+
+        let own_range = self.months.min()..=self.months.max();
+        if own_range != MONTHS_RANGE {
+            return Err(format!("Months are not in range {:?}. Got {:?}", MONTHS_RANGE, own_range));
+        }
+    
+        Ok(())
     }
 
     /// Checks if the provided [NaiveDate] is matched by the interval.
@@ -272,7 +337,7 @@ impl Interval {
 
     /// Returns the next matching time of the day or cycles to the next day if needed.
     /// All returned [NaiveTime]s have their seconds-value set to `0`.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use config::interval::*;
@@ -352,7 +417,7 @@ impl Interval {
         } else {
             self.cyclic_next_daytime(NaiveTime::from_hms_opt(23, 59, 59)?)?
         };
-        
+
         let next_date = if date_matches && next_time > datetime.time() {
             datetime.date()
         } else {
@@ -435,6 +500,70 @@ impl IntervalBuilder {
 #[cfg(test)]
 mod interval_tests {
     use super::*;
+
+    mod validate_test {
+        use super::*;
+
+        #[test]
+        fn valid_interval() {
+            let interval = Interval {
+                minutes: Specifier::new(0, 59, SpecifierKind::All),
+                hours: Specifier::new(0, 23, SpecifierKind::All),
+                weekdays: Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All),
+                monthdays: Specifier::new(0, 31, SpecifierKind::All),
+                weeks: Specifier::new(0, 52, SpecifierKind::All),
+                months: Specifier::new(Month::January(), Month::December(), SpecifierKind::All),
+            };
+
+            assert!(interval.validate().is_ok());
+        }
+
+        #[test]
+        fn invalid_u32_interval() {
+            let mut interval = Interval {
+                minutes: Specifier::new(0, 59, SpecifierKind::All),
+                hours: Specifier::new(0, 23, SpecifierKind::All),
+                weekdays: Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All),
+                monthdays: Specifier::new(17, 31, SpecifierKind::All),
+                weeks: Specifier::new(0, 52, SpecifierKind::All),
+                months: Specifier::new(Month::January(), Month::December(), SpecifierKind::All),
+            };
+
+            assert!(interval.validate().is_err());
+
+            interval.monthdays = Specifier::new(0, 31, SpecifierKind::All);
+            interval.minutes = Specifier::new(0, 100, SpecifierKind::All);
+
+            assert!(interval.validate().is_err());
+
+            interval.minutes = Specifier::new(200, 18, SpecifierKind::All);
+
+            assert!(interval.validate().is_err());
+        }
+
+        #[test]
+        fn invalid_struct_interval() {
+            let mut interval = Interval {
+                minutes: Specifier::new(0, 59, SpecifierKind::All),
+                hours: Specifier::new(0, 23, SpecifierKind::All),
+                weekdays: Specifier::new(Weekday::Wednesday(), Weekday::Sunday(), SpecifierKind::All),
+                monthdays: Specifier::new(0, 31, SpecifierKind::All),
+                weeks: Specifier::new(0, 52, SpecifierKind::All),
+                months: Specifier::new(Month::January(), Month::December(), SpecifierKind::All),
+            };
+
+            assert!(interval.validate().is_err());
+
+            interval.weekdays = Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All);
+            interval.months = Specifier::new(Month::January(), Month::October(), SpecifierKind::All);
+
+            assert!(interval.validate().is_err());
+
+            interval.months = Specifier::new(Month::November(), Month::April(), SpecifierKind::All);
+
+            assert!(interval.validate().is_err());
+        }
+    }
 
     mod builder_tests {
         use super::*;
@@ -932,7 +1061,7 @@ mod interval_tests {
 
             let midnight = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
             assert!(interval.next_daytime(midnight).is_none());
-            
+
             let time = NaiveTime::from_hms_opt(14, 39, 55).unwrap();
             assert!(interval.next_daytime(time).is_none());
         }
@@ -1022,13 +1151,22 @@ mod interval_tests {
                 .unwrap();
 
             let sandman_time = NaiveTime::from_hms_opt(19, 0, 0).unwrap();
-            assert_eq!(interval.cyclic_next_daytime(sandman_time), NaiveTime::from_hms_opt(0, 15, 0));
+            assert_eq!(
+                interval.cyclic_next_daytime(sandman_time),
+                NaiveTime::from_hms_opt(0, 15, 0)
+            );
 
             let little_too_late = NaiveTime::from_hms_opt(18, 16, 0).unwrap();
-            assert_eq!(interval.cyclic_next_daytime(little_too_late), NaiveTime::from_hms_opt(0, 15, 0));
+            assert_eq!(
+                interval.cyclic_next_daytime(little_too_late),
+                NaiveTime::from_hms_opt(0, 15, 0)
+            );
 
             let last_match = NaiveTime::from_hms_opt(18, 15, 0).unwrap();
-            assert_eq!(interval.cyclic_next_daytime(last_match), NaiveTime::from_hms_opt(0, 15, 0));
+            assert_eq!(
+                interval.cyclic_next_daytime(last_match),
+                NaiveTime::from_hms_opt(0, 15, 0)
+            );
         }
 
         #[test]
@@ -1040,10 +1178,16 @@ mod interval_tests {
                 .unwrap();
 
             let midnight = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
-            assert_eq!(interval.cyclic_next_daytime(midnight), NaiveTime::from_hms_opt(0, 0, 0));
-            
+            assert_eq!(
+                interval.cyclic_next_daytime(midnight),
+                NaiveTime::from_hms_opt(0, 0, 0)
+            );
+
             let time = NaiveTime::from_hms_opt(14, 39, 55).unwrap();
-            assert_eq!(interval.cyclic_next_daytime(time), NaiveTime::from_hms_opt(0, 0, 0));
+            assert_eq!(
+                interval.cyclic_next_daytime(time),
+                NaiveTime::from_hms_opt(0, 0, 0)
+            );
         }
 
         #[test]
@@ -1112,12 +1256,16 @@ mod interval_tests {
                 .build()
                 .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(2023, 9, 9).unwrap()
-                .and_hms_opt(12, 40, 29).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(2023, 9, 9)
+                .unwrap()
+                .and_hms_opt(12, 40, 29)
+                .unwrap();
             assert!(interval.next_datetime(datetime).is_none());
 
-            let datetime = NaiveDate::from_ymd_opt(1990, 1, 31).unwrap()
-                .and_hms_opt(0, 12, 18).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(1990, 1, 31)
+                .unwrap()
+                .and_hms_opt(0, 12, 18)
+                .unwrap();
             assert!(interval.next_datetime(datetime).is_none());
         }
 
@@ -1129,8 +1277,10 @@ mod interval_tests {
                 .build()
                 .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(2021, 4, 8).unwrap()
-                .and_hms_opt(0, 0, 0).unwrap();
+            let datetime = NaiveDate::from_ymd_opt(2021, 4, 8)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
             assert!(interval.next_datetime(datetime).is_none());
         }
 
@@ -1142,15 +1292,36 @@ mod interval_tests {
                 .build()
                 .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(2020, 2, 20).unwrap()
-                .and_hms_opt(0, 0, 0).unwrap();
-            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2020, 2, 29).unwrap().and_hms_opt(0, 0, 0));
-            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8).unwrap()
-                .and_hms_opt(0, 0, 0).unwrap();
-            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2020, 2, 29).unwrap().and_hms_opt(0, 0, 0));
-            let datetime = NaiveDate::from_ymd_opt(2020, 1, 5).unwrap()
-                .and_hms_opt(20, 55, 36).unwrap();
-            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2020, 2, 29).unwrap().and_hms_opt(0, 0, 0));
+            let datetime = NaiveDate::from_ymd_opt(2020, 2, 20)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
+            assert_eq!(
+                interval.next_datetime(datetime),
+                NaiveDate::from_ymd_opt(2020, 2, 29)
+                    .unwrap()
+                    .and_hms_opt(0, 0, 0)
+            );
+            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
+            assert_eq!(
+                interval.next_datetime(datetime),
+                NaiveDate::from_ymd_opt(2020, 2, 29)
+                    .unwrap()
+                    .and_hms_opt(0, 0, 0)
+            );
+            let datetime = NaiveDate::from_ymd_opt(2020, 1, 5)
+                .unwrap()
+                .and_hms_opt(20, 55, 36)
+                .unwrap();
+            assert_eq!(
+                interval.next_datetime(datetime),
+                NaiveDate::from_ymd_opt(2020, 2, 29)
+                    .unwrap()
+                    .and_hms_opt(0, 0, 0)
+            );
         }
 
         #[test]
@@ -1160,12 +1331,26 @@ mod interval_tests {
                 .build()
                 .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8).unwrap()
-                .and_hms_opt(0, 0, 0).unwrap();
-            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2019, 4, 8).unwrap().and_hms_opt(1, 0, 0));
-            let datetime = NaiveDate::from_ymd_opt(2023, 8, 5).unwrap()
-                .and_hms_opt(20, 35, 55).unwrap();
-            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2023, 8, 5).unwrap().and_hms_opt(21, 0, 0));
+            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
+            assert_eq!(
+                interval.next_datetime(datetime),
+                NaiveDate::from_ymd_opt(2019, 4, 8)
+                    .unwrap()
+                    .and_hms_opt(1, 0, 0)
+            );
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 5)
+                .unwrap()
+                .and_hms_opt(20, 35, 55)
+                .unwrap();
+            assert_eq!(
+                interval.next_datetime(datetime),
+                NaiveDate::from_ymd_opt(2023, 8, 5)
+                    .unwrap()
+                    .and_hms_opt(21, 0, 0)
+            );
         }
 
         #[test]
@@ -1175,12 +1360,26 @@ mod interval_tests {
                 .build()
                 .unwrap();
 
-            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8).unwrap()
-                .and_hms_opt(23, 0, 0).unwrap();
-            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2019, 4, 9).unwrap().and_hms_opt(0, 0, 0));
-            let datetime = NaiveDate::from_ymd_opt(2023, 8, 5).unwrap()
-                .and_hms_opt(23, 35, 55).unwrap();
-            assert_eq!(interval.next_datetime(datetime), NaiveDate::from_ymd_opt(2023, 8, 6).unwrap().and_hms_opt(0, 0, 0));
+            let datetime = NaiveDate::from_ymd_opt(2019, 4, 8)
+                .unwrap()
+                .and_hms_opt(23, 0, 0)
+                .unwrap();
+            assert_eq!(
+                interval.next_datetime(datetime),
+                NaiveDate::from_ymd_opt(2019, 4, 9)
+                    .unwrap()
+                    .and_hms_opt(0, 0, 0)
+            );
+            let datetime = NaiveDate::from_ymd_opt(2023, 8, 5)
+                .unwrap()
+                .and_hms_opt(23, 35, 55)
+                .unwrap();
+            assert_eq!(
+                interval.next_datetime(datetime),
+                NaiveDate::from_ymd_opt(2023, 8, 6)
+                    .unwrap()
+                    .and_hms_opt(0, 0, 0)
+            );
         }
     }
 }

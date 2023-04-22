@@ -1,0 +1,8 @@
+<ul>
+    <li *ngFor="let element of list; index as i; trackBy: trackByFn">
+        <input type="text" [(ngModel)]="list[i]" placeholder="{{ placeholder }}">
+        <button (click)="removeElement(i)" title="Entferne Element" class="red">X</button>
+    </li>
+</ul>
+
+<button (click)="addElement()" title="Element hinzufügen" class="green">+</button>

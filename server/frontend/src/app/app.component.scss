@@ -1,0 +1,17 @@
+@import '../vars';
+
+:host {
+    height: 100vh;
+
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+main {
+    flex-grow: 1;
+    padding: 0 5%;
+    padding-bottom: 200px;
+
+    overflow-y: auto;
+}

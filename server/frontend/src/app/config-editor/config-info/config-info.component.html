@@ -1,0 +1,25 @@
+<div class="fields">
+    <div class="left">
+        <div>
+            <label for="config-name">Name:</label>
+            <input class="value" type="text" id="config-name" [(ngModel)]="profileConfig.name" placeholder="Name">
+        </div>
+
+        <div>
+            <label>ID:</label>
+            <span class="uuid value">{{ profileConfig.uuid }}</span>
+        </div>
+    </div>
+    <div class="right">
+        <div>
+            <label for="config-target-dir">Speicherort:</label>
+            <input class="value" type="text" id="config-target-dir" [(ngModel)]="profileConfig.target_dir"
+                placeholder="Speicherort">
+        </div>
+
+        <div>
+            <label>Nächstes Backup:</label>
+            <span class="next-backup value">{{ profileConfig.next_backup }}</span>
+        </div>
+    </div>
+</div>

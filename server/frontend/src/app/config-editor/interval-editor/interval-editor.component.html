@@ -1,0 +1,42 @@
+<div class="editors">
+    <div class="time">
+        <div class="editor">
+            <h4>
+                Stunde
+            </h4>
+            <app-specifier-editor [specifier]="profileConfig.interval.hours" [offset]="0"></app-specifier-editor>
+        </div>
+        <div class="editor">
+            <h4>
+                Minute
+            </h4>
+            <app-specifier-editor [specifier]="profileConfig.interval.minutes" [offset]="0"></app-specifier-editor>
+        </div>
+    </div>
+    <div class="date">
+        <div class="editor">
+            <h4>
+                Wochentag
+            </h4>
+            <app-specifier-editor [specifier]="profileConfig.interval.weekdays" [offset]="1"></app-specifier-editor>
+        </div>
+        <div class="editor">
+            <h4>
+                Monatstag
+            </h4>
+            <app-specifier-editor [specifier]="profileConfig.interval.monthdays" [offset]="1"></app-specifier-editor>
+        </div>
+        <div class="editor">
+            <h4>
+                Jahreswoche
+            </h4>
+            <app-specifier-editor [specifier]="profileConfig.interval.weeks" [offset]="1"></app-specifier-editor>
+        </div>
+        <div class="editor">
+            <h4>
+                Monat
+            </h4>
+            <app-specifier-editor [specifier]="profileConfig.interval.months" [offset]="1"></app-specifier-editor>
+        </div>
+    </div>
+</div>

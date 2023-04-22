@@ -187,7 +187,6 @@ pub fn schedule_backup(uuid: Uuid, date_time: NaiveDateTime) -> Result<(), Strin
 
         set_up_action(&action_collection, uuid).or_else(|msg| transform_err(msg))?;
 
-        println!("RegisterTaskDefinition...");
         task_folder
             .RegisterTaskDefinition(
                 &BSTR::from(task_name),

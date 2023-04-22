@@ -1,0 +1,63 @@
+{
+  "name": "Turbo",
+  "uuid": "1611b2bd-aa78-4ef6-94db-19ec3416a460",
+  "target_dir": "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\target_dir",
+  "files_to_include": [
+    "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir2\\fusch2.txt"
+  ],
+  "dirs_to_include": [
+    "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir1"
+  ],
+  "files_to_exclude": [
+    "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir1\\dir1_1\\excluded.txt"
+  ],
+  "dirs_to_exclude": [
+    "F:\\Projekte\\Rust\\backup\\backupper\\test_dir\\backup_test\\content\\dir1\\dir1_2"
+  ],
+  "interval": {
+    "minutes": {
+      "min": 0,
+      "max": 59,
+      "kind": {
+        "EveryNth": [
+          5,
+          0
+        ]
+      }
+    },
+    "hours": {
+      "min": 0,
+      "max": 23,
+      "kind": "All"
+    },
+    "weekdays": {
+      "min": {
+        "day": 0
+      },
+      "max": {
+        "day": 6
+      },
+      "kind": "All"
+    },
+    "monthdays": {
+      "min": 0,
+      "max": 31,
+      "kind": "All"
+    },
+    "weeks": {
+      "min": 0,
+      "max": 52,
+      "kind": "All"
+    },
+    "months": {
+      "min": {
+        "month": 0
+      },
+      "max": {
+        "month": 11
+      },
+      "kind": "Last"
+    }
+  },
+  "next_backup": "2023-03-07T20:34:25.471691500"
+}

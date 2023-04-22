@@ -20,7 +20,7 @@ impl GeneralConfig {
     /// 
     /// # Returns
     /// [Ok] containing a [GeneralConfig] instance or an [Error]
-    pub fn read(global_config_file: PathBuf) -> Result<GeneralConfig, Error> {
+    pub fn read(global_config_file: &PathBuf) -> Result<GeneralConfig, Error> {
         let file = File::open(global_config_file)?;
         let reader = BufReader::new(file);
 
@@ -34,7 +34,7 @@ impl GeneralConfig {
     /// 
     /// # Returns
     /// [Ok] containing a [GeneralConfig] instance or an [Error]
-    pub fn store(&self, global_config_file: PathBuf) -> Result<(), Error> {
+    pub fn store(&self, global_config_file: &PathBuf) -> Result<(), Error> {
         let file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -66,7 +66,7 @@ mod global_config_tests {
         let config = GeneralConfig {
             profile_configs: PathBuf::from("test"),
         };
-        config.store(tmp_file.clone())?;
+        config.store(&tmp_file)?;
         delete_file(tmp_file);
         Ok(())
     }
@@ -74,7 +74,7 @@ mod global_config_tests {
     #[test]
     fn read_test() -> Result<(), Error> {
         let tmp_file = PathBuf::from("test_tmp/read_test.json");
-        let config = GeneralConfig::read(tmp_file)?;
+        let config = GeneralConfig::read(&tmp_file)?;
         assert_eq!(config.profile_configs, PathBuf::from("test"));
         Ok(())
     }
@@ -82,7 +82,7 @@ mod global_config_tests {
     #[test]
     fn read_non_existing() {
         let file = PathBuf::from("Non-existing.abc");
-        let config = GeneralConfig::read(file);
+        let config = GeneralConfig::read(&file);
         assert!(config.is_err());
     }
 }
