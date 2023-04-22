@@ -17,3 +17,9 @@ pub fn schedule_backup(uuid: Uuid, date_time: NaiveDateTime) -> Result<(), Strin
     #[cfg(target_family = "windows")]
     windows::schedule_backup(uuid, date_time)
 }
+
+/// Unschedules backups for the profile with the given [Uuid]
+pub fn unschedule_backup(uuid: Uuid) -> Result<(), String> {
+    #[cfg(target_family = "windows")]
+    windows::unschedule_backup(uuid)
+}
