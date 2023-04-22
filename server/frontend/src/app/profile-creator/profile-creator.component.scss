@@ -1,0 +1,32 @@
+@import '../../vars';
+
+:host {
+    border-top: 1px solid $light-gray;
+
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+}
+
+input {
+    display: block;
+    width: 100%;
+
+    font-size: 1.1em;
+
+    background-color: transparent;
+    border: 1px solid $secondary;
+
+    color: white;
+
+    &:focus {
+        background-color: black;
+    }
+}
+
+button {
+    width: 100%;
+    padding: unset;
+
+    background-color: $secondary;
+}
