@@ -14,8 +14,6 @@ export class SpecifierEditorComponent<MIN, MAX> implements OnInit {
   selectedKind = '';
 
   ngOnInit(): void {
-    console.log('HI');
-    console.log(this.specifier);
     this.initSelectedKind();
   }
 

@@ -1,14 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, catchError, of } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 import { ProfileConfig } from './profile-config';
+import { MessageService } from './message.service';
+import { Message, MessageType } from 'Message';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiServiceService {
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private readonly messageService: MessageService) { }
 
   /**
    * Fetches the existing `ProfileConfig`s
@@ -30,9 +32,12 @@ export class ApiServiceService {
     };
 
     return this.http.post<ProfileConfig | undefined>(`/api/profiles/create/${name}`, null, httpOptions).pipe(
+      tap(() => this.messageService.sendMsg(new Message(MessageType.Info, 'Neues Profil erfolgreich erzeugt'))),
       catchError(err => {
         console.error('Couldn\' create new ProfileConfig. Got:');
         console.error(err);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.messageService.sendMsg(new Message(MessageType.Error, `Profil konnte nicht erzeugt werden: ${(err as any).error}`));
         return of(undefined);
       })
     );
@@ -47,9 +52,12 @@ export class ApiServiceService {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     };
     return this.http.put<ProfileConfig>(`/api/profiles/uuid/${profileConfig.uuid}`, profileConfig, httpOptions).pipe(
+      tap(() => this.messageService.sendMsg(new Message(MessageType.Info, 'Profil erfolgreich aktualisiert'))),
       catchError(err => {
         console.error('Couldn\'t update profileConfig, got:');
         console.error(err);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.messageService.sendMsg(new Message(MessageType.Error, `Profil konnte nicht aktualisiert werden: ${(err as any).error}`));
         return of(profileConfig);
       })
     );

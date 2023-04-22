@@ -16,11 +16,8 @@ export class AppComponent implements OnInit {
   title = 'Backupper';
   profileConfigs: ProfileConfig[] = [];
   selected?: ProfileConfig;
-  intervalHandler: unknown;
 
-  constructor(private api: ApiServiceService) {
-    this.intervalHandler = setInterval(() => console.log(this.selected), 10000);
-  }
+  constructor(private api: ApiServiceService) {}
 
   ngOnInit(): void {
     this.getProfileConfigs();

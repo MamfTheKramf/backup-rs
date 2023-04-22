@@ -14,6 +14,7 @@ import { IntervalEditorComponent } from './config-editor/interval-editor/interva
 import { SpecifierEditorComponent } from './config-editor/interval-editor/specifier-editor/specifier-editor.component';
 import { NumberListComponent } from './config-editor/number-list/number-list.component';
 import { ProfileCreatorComponent } from './profile-creator/profile-creator.component';
+import { MessageBannerComponent } from './message-banner/message-banner.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { ProfileCreatorComponent } from './profile-creator/profile-creator.compo
     IntervalEditorComponent,
     SpecifierEditorComponent,
     NumberListComponent,
-    ProfileCreatorComponent
+    ProfileCreatorComponent,
+    MessageBannerComponent
   ],
   imports: [
     BrowserModule,
