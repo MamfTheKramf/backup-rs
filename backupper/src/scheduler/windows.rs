@@ -3,7 +3,7 @@
 use chrono::NaiveDateTime;
 use uuid::Uuid;
 use windows::{
-    core::{ComInterface, BSTR},
+    core::{ComInterface, BSTR, HRESULT},
     w,
     Win32::{
         Foundation::VARIANT_BOOL,
@@ -232,7 +232,14 @@ pub fn unschedule_backup(uuid: Uuid) -> Result<(), String> {
             .or_else(|_| transform_err("Couldn't create task folder"))?;
         
         task_folder.DeleteTask(&task_name, 0)
-            .or(Err(String::from("Couldn't delete task")))?;
+            .or_else(|e| {
+                #[allow(overflowing_literals)]
+                if e.code() == HRESULT(0x80070002) {
+                    Ok::<(), String>(())
+                } else {
+                    Err(e.message().to_string())
+                }
+            })?;
     }
     Ok(())
 }
