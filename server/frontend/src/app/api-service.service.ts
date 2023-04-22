@@ -30,6 +30,7 @@ export class ApiServiceService {
     return this.http.delete<void>(`/api/profiles/uuid/${uuid}`).pipe(
       tap(() => this.messageService.sendMsg(new Message(MessageType.Info, 'Profil gelöscht'))),
       catchError(err => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.messageService.sendMsg(new Message(MessageType.Error, `Profil konnte nicht gelöscht werden: ${(err as any).error}`));
         return of();
       })
