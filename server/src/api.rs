@@ -327,6 +327,19 @@ pub async fn update_profile_config(
     new_config.set_uuid(uuid);
     new_config.next_backup = target_config.next_backup;
 
+    // we have to store first; otherwise the reschedule would just take the old interval
+    new_config.store(dir).or_else(|e| {
+        log::error!(
+            "Couldn't store ProfileConfig {:?} because {:#?}",
+            new_config.get_uuid(),
+            e
+        );
+        Err((
+            Status::InternalServerError,
+            String::from("Unexpected Error"),
+        ))
+    })?;
+
     if new_config.interval != target_config.interval {
         log::info!("Rescheduling ProfileConfig {:?}", new_config.get_uuid());
         let output = rocket::tokio::process::Command::new(backupper_path.as_os_str())
@@ -344,18 +357,6 @@ pub async fn update_profile_config(
             Err(e) => log::warn!("Rescheduling of ProfileConfig {:?} failed. Error: {:#?}", new_config.get_uuid(), e)
         }
     }
-
-    new_config.store(dir).or_else(|e| {
-        log::error!(
-            "Couldn't store ProfileConfig {:?} because {:#?}",
-            new_config.get_uuid(),
-            e
-        );
-        Err((
-            Status::InternalServerError,
-            String::from("Unexpected Error"),
-        ))
-    })?;
 
     Ok((Status::Ok, Json(new_config)))
 }
