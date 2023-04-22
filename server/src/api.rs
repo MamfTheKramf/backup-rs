@@ -117,53 +117,68 @@ pub async fn get_profile_config_by_name(
     Ok((Status::Ok, Json(target_config)))
 }
 
+#[derive(Debug)]
+enum Identifyier {
+    Name(String),
+    Uuid(Uuid),
+}
+
 /// Tries to delete the JSON file of that profile config
 async fn delete_profile_config(
-    json_dir: &PathBuf,
-    profile_config: ProfileConfig,
-) -> Result<(), APIError> {
-    let filename = profile_config.get_uuid().as_hyphenated().to_string() + ".json";
-    let path = json_dir.join(filename);
+    backupper_path: &PathBuf,
+    id: Identifyier
+) -> Result<String, String> {
+    let mut output = rocket::tokio::process::Command::new(backupper_path.as_os_str());
 
-    fs::remove_file(&path).await.or_else(|e| {
-        log::error!("Couldn't delete file {:?} because {:#?}", path, e);
-        match e.kind() {
-            std::io::ErrorKind::NotFound => Ok(()),
-            _ => Err((
-                Status::InternalServerError,
-                format!(
-                    "Couldn't remove ProfileConfig with name {:?}",
-                    profile_config.name
-                ),
-            )),
+    match &id {
+        Identifyier::Name(name) => {
+            output.arg("-n")
+                .arg(name);
         }
-    })
+        Identifyier::Uuid(uuid) => {
+            output.arg("-u")
+                .arg(uuid.as_hyphenated().to_string());
+        },
+    }
+
+    let output = output.arg("delete")
+        .output()
+        .await;
+    log::debug!("{:#?}", output);
+    match output {
+        Ok(output) => match output.status.code() {
+            Some(x) if x == 0 => Ok(format!("Successfully deleted ProfileConfig {:?}", id)),
+            _ => Err(format!(
+                "Deletion of ProfileConfig {:?} failed. Error: {:#?}",
+                id, output
+            )),
+        },
+        Err(e) => Err(format!(
+            "Deletion of ProfileConfig {:?} failed. Error: {:#?}",
+            id, e
+        )),
+    }
 }
 
 /// Deletes the [ProfileConfig] with the given name.
 #[delete("/profiles/name/<name>")]
 pub async fn delete_profile_config_by_name(
-    general_config: &State<GeneralConfig>,
+    backupper_path: &State<PathBuf>,
     name: String,
 ) -> Result<Status, APIError> {
-    let dir = &general_config.profile_configs;
+    log::debug!("Delete ProfileConfig {:?}", name);
+    let res = delete_profile_config(backupper_path, Identifyier::Name(name)).await;
 
-    let profile_configs = read_profile_configs(dir)
-        .await
-        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
-
-    let target_config = profile_configs
-        .into_iter()
-        .find(|config| config.name == name)
-        .ok_or_else(|| {
-            let msg = format!("No ProfileConfig with the name {:?} was found", name);
+    match res {
+        Ok(msg) => {
+            log::debug!("{}", msg);
+            Ok(Status::NoContent)
+        },
+        Err(msg) => {
             log::warn!("{}", msg);
-            (Status::NotFound, msg)
-        })?;
-
-    delete_profile_config(dir, target_config).await?;
-
-    Ok(Status::NoContent)
+            Err((Status::InternalServerError, msg))
+        }
+    }
 }
 
 #[get("/profiles/uuid/<uuid>")]
@@ -200,7 +215,7 @@ pub async fn get_profile_config_by_uuid(
 // Deletes [ProfileConfig] with the given uuid
 #[delete("/profiles/uuid/<uuid>")]
 pub async fn delete_profile_config_by_uuid(
-    general_config: &State<GeneralConfig>,
+    backupper_path: &State<PathBuf>,
     uuid: String,
 ) -> Result<Status, APIError> {
     let uuid = Uuid::parse_str(&uuid).or_else(|e| {
@@ -211,24 +226,19 @@ pub async fn delete_profile_config_by_uuid(
         ))
     })?;
 
-    let dir = &general_config.profile_configs;
+    log::info!("Delete ProfileConfig {:?}", uuid);
+    let msg = delete_profile_config(backupper_path, Identifyier::Uuid(uuid)).await;
 
-    let profile_configs = read_profile_configs(dir)
-        .await
-        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
-
-    let target_config = profile_configs
-        .into_iter()
-        .find(|config| config.get_uuid() == &uuid)
-        .ok_or_else(|| {
-            let msg = format!("No ProfileConfig with the uuid {:?} was found", uuid);
+    match msg {
+        Ok(msg) => {
+            log::debug!("{}", msg);
+            Ok(Status::NoContent)
+        },
+        Err(msg) => {
             log::warn!("{}", msg);
-            (Status::NotFound, msg)
-        })?;
-
-    delete_profile_config(dir, target_config).await?;
-
-    Ok(Status::NoContent)
+            Err((Status::InternalServerError, msg))
+        }
+    }
 }
 
 /// Tries to create a new profile config with the given name.
@@ -247,7 +257,9 @@ pub async fn create_blank_profile_config(
         .await
         .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
 
-    let name_already_taken = profile_configs.iter().any(|config| config.name.to_lowercase() == name.to_lowercase());
+    let name_already_taken = profile_configs
+        .iter()
+        .any(|config| config.name.to_lowercase() == name.to_lowercase());
     if name_already_taken {
         return Err((
             Status::Conflict,
