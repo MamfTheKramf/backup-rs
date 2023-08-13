@@ -1,0 +1,1 @@
+Powershell -Command "Start-Process <EXE_PATH> -WorkingDirectory <EXE_DIR> -WindowStyle Hidden"
