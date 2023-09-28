@@ -21,6 +21,10 @@ pub struct Args {
     /// Path to general config file.
     #[arg(short, long, default_value_t = String::from("./general_config.json"))]
     pub general_config: String,
+        
+    /// Path to the logger config YAML-file.
+    #[arg(long, default_value_t = String::from("./main_logging_conf.yaml"))]
+    pub logger_config: String,
 
     /// Name of Profile to check.
     #[arg(short, long)]
