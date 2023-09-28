@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
+use log::error;
 use uuid::Uuid;
 
 use crate::scheduler::{schedule_backup, unschedule_backup};
@@ -33,7 +34,7 @@ fn delete_backup_files(uuid: &Uuid, dir: &PathBuf) -> Result<(), String> {
 
         if filename.starts_with(&uuid.as_hyphenated().to_string()) && filename.ends_with(".zip") {
             if let Err(e) = fs::remove_file(&path) {
-                println!("Couldn't delete {:?}. Got: {:#?}", path, e);
+                error!("Couldn't delete {:?}. Got: {:#?}", path, e);
             }
         }
 
@@ -50,19 +51,19 @@ pub fn delete(
     delete_backups: bool,
 ) {
     if let Err(e) = unschedule_backup(profile_config.get_uuid().clone()) {
-        println!("Couldn't unschedule profile. Got {}", e);
+        error!("Couldn't unschedule profile. Got {}", e);
         return;
     }
 
     if delete_backups {
         if let Err(e) = delete_backup_files(profile_config.get_uuid(), &profile_config.target_dir) {
-            println!("Couldn't delete previous backups. Got {}", e);
+            error!("Couldn't delete previous backups. Got {}", e);
 
             if let Err(e) = schedule_backup(
                 profile_config.get_uuid().clone(),
                 profile_config.next_backup,
             ) {
-                println!("Couldn't reschedule old backup. Got: {}", e);
+                error!("Couldn't reschedule old backup. Got: {}", e);
             }
             return;
         }
@@ -72,12 +73,12 @@ pub fn delete(
     let path = general_config.profile_configs.join(filename);
 
     if let Err(e) = fs::remove_file(&path) {
-        println!("Coudln't delete config file. Got {:#?}", e);
+        error!("Coudln't delete config file. Got {:#?}", e);
         if let Err(e) = schedule_backup(
             profile_config.get_uuid().clone(),
             profile_config.next_backup,
         ) {
-            println!("Couldn't reschedule old backup. Got: {}", e);
+            error!("Couldn't reschedule old backup. Got: {}", e);
         }
     }
 }

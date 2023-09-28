@@ -22,7 +22,7 @@ fn init_logger(path: &PathBuf) {
     match log4rs::init_file(path, Default::default()) {
         Ok(_) => info!("Initialized logger"),
         Err(e) => {
-            println!("Couldn't initialize logger: {:?}", e);
+            eprintln!("Couldn't initialize logger: {:?}", e);
             std::process::exit(1);
         }
     }
@@ -55,9 +55,7 @@ fn main() {
         }
     };
 
-    if args.verbose {
-        println!("Loaded general config: {:?}", general_config);
-    }
+    info!("Loaded general config: {:?}", general_config);
 
     let profile_configs = match soft_load_profile_configs(&general_config, &args) {
         Ok(configs) => configs,
@@ -67,9 +65,7 @@ fn main() {
         }
     };
 
-    if args.verbose {
-        println!("Loaded {} profile configs.", profile_configs.len())
-    }
+    info!("Loaded {} profile configs.", profile_configs.len());
 
     match &args.command {
         cli_args::Commands::Backup => {

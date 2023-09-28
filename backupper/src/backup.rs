@@ -10,6 +10,7 @@ use chrono::offset;
 use config::{
     general_config::GeneralConfig, interval::DateTimeMatch, profile_config::ProfileConfig,
 };
+use log::{error, warn, info, debug};
 use zip::{write::FileOptions, ZipWriter};
 
 use crate::{
@@ -33,7 +34,7 @@ pub fn handle_profile(
     // actually perform backup
     if do_perform_backup {
         if let Err(msg) = perform_backup(profile_config, args) {
-            println!("{}", msg);
+            error!("{}", msg);
         }
     }
 
@@ -45,7 +46,7 @@ pub fn handle_profile(
     }
 
     if let Err(err) = profile_config.store(&general_config.profile_configs) {
-        println!(
+        error!(
             "Couldn't store profile_config {:?}.\nGot error: {:?}",
             profile_config, err
         );
@@ -55,7 +56,7 @@ pub fn handle_profile(
         profile_config.get_uuid().clone(),
         profile_config.next_backup,
     ) {
-        println!("Couldn't set up next backup.\nGot error: {:?}", msg);
+        error!("Couldn't set up next backup.\nGot error: {:?}", msg);
     }
 }
 
@@ -136,18 +137,14 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     // add all directories
     for dir in &profile_config.dirs_to_include {
         if let Err(msg) = add_directory(&mut zip, dir, profile_config, args) {
-            if args.verbose {
-                println!("Couldn't add dir {:?} because {:?}", dir, msg);
-            }
+            warn!("Couldn't add dir {:?} because {:?}", dir, msg);
         }
     }
 
     // add all files
     for file in &profile_config.files_to_include {
         if let Err(msg) = add_file(&mut zip, file, profile_config, args) {
-            if args.verbose {
-                println!("Couldn't add file {:?} because {:?}", file, msg);
-            }
+            warn!("Couldn't add file {:?} because {:?}", file, msg);
         }
     }
 
@@ -156,9 +153,7 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
         return Err(format!("Couldn't finish archive because of {:?}", err));
     }
 
-    if args.verbose {
-        println!("Finished archive in {:?}", path);
-    }
+    info!("Finished archive in {:?}", path);
     Ok(())
 }
 
@@ -199,9 +194,7 @@ fn add_directory(
         // go recursively into directories
         if path.is_dir() {
             if let Err(msg) = add_directory(zip, &path, profile_config, args) {
-                if args.verbose {
-                    println!("{}", msg);
-                }
+                warn!("{}", msg);
             }
         }
 
@@ -210,9 +203,7 @@ fn add_directory(
             match write_to_zip(&path, zip, args) {
                 Ok(_) => (),
                 Err(msg) => {
-                    if args.verbose {
-                        println!("{}", msg);
-                    }
+                    warn!("{}", msg);
                 }
             }
         }
@@ -236,9 +227,7 @@ fn add_file(
     // --> if it is in an included dir, it might have not been added since is is also in an excluded dir
     //      --> add that file
     if profile_config.in_included_dirs(file) && !profile_config.is_excluded(file) {
-        if args.verbose {
-            println!("File {:?} is already covered by included dirs.", file);
-        }
+        debug!("File {:?} is already covered by included dirs.", file);
         return Ok(());
     }
 
@@ -249,7 +238,7 @@ fn add_file(
 ///
 /// # Errors
 /// Returns an [Err] describing the issue if something goes wrong
-fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, args: &Args) -> Result<(), String> {
+fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, _args: &Args) -> Result<(), String> {
     let mut file = match File::open(path) {
         Ok(file) => file,
         Err(err) => {
@@ -260,9 +249,7 @@ fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, args: &Args) -> Resul
         }
     };
 
-    if args.verbose {
-        println!("Store {:?}", path);
-    }
+    debug!("Store {:?}", path);
 
     let name = String::from(path.to_str().unwrap_or(""));
     if let Err(err) = zip.start_file(name, FileOptions::default()) {
@@ -297,9 +284,7 @@ fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, args: &Args) -> Resul
         }
     }
 
-    if args.verbose {
-        println!("Successfully added {:?} to archive.", path);
-    }
+    debug!("Successfully added {:?} to archive.", path);
     Ok(())
 }
 
