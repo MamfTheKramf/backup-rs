@@ -43,7 +43,7 @@ pub struct Args {
     pub verbose: bool,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Performs backup
     Backup,
@@ -58,14 +58,14 @@ pub enum Commands {
     Delete(Delete),
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 pub struct Restore {
     /// Format: "YYYY-MM-DD HH:MM". Timestamp that has to be preceeded by the backup. If not set, the latest backup is chosen.
     #[arg(short, long, value_parser = valid_time_format)]
     pub timestamp: Option<NaiveDateTime>,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 pub struct Delete {
     /// Remove the already created backup files as well
     #[arg(short, long)]

@@ -23,6 +23,7 @@ fn init_logger(path: &PathBuf) {
         Ok(_) => info!("Initialized logger"),
         Err(e) => {
             eprintln!("Couldn't initialize logger: {:?}", e);
+            eprintln!("Expected file here: '{:?}'", path);
             std::process::exit(1);
         }
     }
@@ -66,6 +67,8 @@ fn main() {
     };
 
     info!("Loaded {} profile configs.", profile_configs.len());
+
+    info!("Running subcommand {:?}", args.command);
 
     match &args.command {
         cli_args::Commands::Backup => {
