@@ -76,7 +76,7 @@ function addInstallScript() {
 function createArchive() {
     Write-Host "Create Archive:"
 
-    Compress-Archive -Path $TmpDir -DestinationPath $OutFile
+    Compress-Archive -Path $TmpDir\* -DestinationPath $OutFile
 }
 
 createTmpDir
