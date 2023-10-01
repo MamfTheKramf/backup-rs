@@ -4,6 +4,7 @@ use cli_args::{parse_args, Args};
 use config::general_config::GeneralConfig;
 use log::info;
 use rocket::fs::FileServer;
+use exitcode;
 
 #[macro_use]
 extern crate rocket;
@@ -17,7 +18,7 @@ fn init_logger(path: &PathBuf) {
         Ok(_) => info!("Initialized logger"),
         Err(e) => {
             println!("Couldn't initialize logger: {:?}", e);
-            std::process::exit(1);
+            std::process::exit(exitcode::UNAVAILABLE);
         }
     }
 }
@@ -48,7 +49,7 @@ fn rocket() -> _ {
     info!("CLI-Args: {:#?}", args);
 
     if !check_backupper(&args) {
-        process::exit(1);
+        process::exit(exitcode::UNAVAILABLE);
     }
     std::env::set_var("ROCKET_CLI_COLORS", format!("{}", args.rocket_colors));
 
@@ -60,7 +61,7 @@ fn rocket() -> _ {
                 args.general_config,
                 e
             );
-            std::process::exit(1);
+            std::process::exit(exitcode::UNAVAILABLE);
         }
     };
 

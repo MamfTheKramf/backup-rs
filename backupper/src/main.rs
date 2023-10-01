@@ -15,6 +15,7 @@ use dialog::info_dialog;
 use log::{info, error};
 use reschedule::reschedule;
 use restore::restore;
+use exitcode;
 
 use crate::config::soft_load_profile_configs;
 
@@ -24,7 +25,7 @@ fn init_logger(path: &PathBuf) {
         Err(e) => {
             eprintln!("Couldn't initialize logger: {:?}", e);
             eprintln!("Expected file here: '{:?}'", path);
-            std::process::exit(1);
+            std::process::exit(exitcode::UNAVAILABLE);
         }
     }
 }
@@ -37,13 +38,16 @@ fn main() {
     if let Ok(path) = std::env::current_exe() {
         if let Some(parent) = path.parent() {
             if let Err(err) = std::env::set_current_dir(parent.clone()) {
-                error!("Couldn't change working dir beacuase {:?}", err);
-                exit(1);
+                error!("Couldn't change working dir because {:?}", err);
+                exit(exitcode::OSERR);
             }
         } else {
-            error!("Couldn't change working directory.");
-            exit(1);
+            error!("Couldn't change working directory because current exe path has no parent");
+            exit(exitcode::OSERR);
         }
+    } else {
+        error!("Couldn't change working dir because couldn't get path to current exe");
+        exit(exitcode::OSERR);
     }
 
     let args = cli_args::get_args();
@@ -52,7 +56,7 @@ fn main() {
         Ok(config) => config,
         Err(msg) => {
             error!("Error loading general config: {}", msg);
-            exit(1);
+            exit(exitcode::UNAVAILABLE);
         }
     };
 
@@ -62,7 +66,7 @@ fn main() {
         Ok(configs) => configs,
         Err(msg) => {
             error!("Error loading profile configs: {}", msg);
-            exit(1);
+            exit(exitcode::UNAVAILABLE);
         }
     };
 
@@ -97,6 +101,7 @@ fn main() {
     if let Some(orig_path) = orig_path {
         if let Err(err) = std::env::set_current_dir(orig_path) {
             error!("Couldn't reset working dir because of {:?}", err);
+            exit(exitcode::OSERR);
         }
     }
 }
