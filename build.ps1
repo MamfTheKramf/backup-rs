@@ -72,8 +72,9 @@ function buildRustCode() {
 function addInstallScript() {
     Write-Host "Copy Install-Script to TmpDir:"
 
-    Copy-Item -Path .\installation\install.ps1 -Destination $TmpDir
-    Copy-Item -Path .\installation\backupper-server.cmd -Destination $TmpDir
+    Copy-Item -Path .\installation\* -Destination $TmpDir
+    # Copy-Item -Path .\installation\install.ps1 -Destination $TmpDir
+    # Copy-Item -Path .\installation\backupper-server.cmd -Destination $TmpDir
 }
 
 function createArchive() {
