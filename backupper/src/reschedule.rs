@@ -1,4 +1,5 @@
 use config::{profile_config::ProfileConfig, general_config::GeneralConfig};
+use log::{info, error};
 
 use crate::scheduler;
 
@@ -15,12 +16,12 @@ pub fn reschedule(profile_config: &mut ProfileConfig, general_config: &GeneralCo
     profile_config.next_backup = next_backup;
 
     if let Err(e) = scheduler::schedule_backup(profile_config.get_uuid().clone(), profile_config.next_backup) {
-        println!("Couldn't schedule next backup: {:?}", e);
+        error!("Couldn't schedule next backup: {:?}", e);
         return;
     }
 
     if let Err(e) = profile_config.store(&general_config.profile_configs) {
-        println!("Couldn't store updated ProfileConfig: {:?}", e);
-        println!("The backup is still rescheduled though.");
+        error!("Couldn't store updated ProfileConfig: {:?}", e);
+        info!("The backup is still rescheduled though.");
     }
 }

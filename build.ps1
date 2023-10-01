@@ -62,6 +62,9 @@ function buildRustCode() {
     Write-Host "`tCopy logging_conf.yaml to TmpDir" -ForegroundColor Gray
     Copy-Item -Path .\server\logging_conf.yaml -Destination $TmpDir
 
+    Write-Host "`tCopy main_logging_conf.yaml to TmpDir" -ForegroundColor Gray
+    Copy-Item -Path .\backupper\main_logging_conf.yaml -Destination $TmpDir
+
     Write-Host "`tCopy general_config.json to TmpDir" -ForegroundColor Gray
     Copy-Item -Path .\server\general_config.json -Destination $TmpDir
 }

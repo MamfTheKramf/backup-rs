@@ -21,6 +21,10 @@ pub struct Args {
     /// Path to general config file.
     #[arg(short, long, default_value_t = String::from("./general_config.json"))]
     pub general_config: String,
+        
+    /// Path to the logger config YAML-file.
+    #[arg(long, default_value_t = String::from("./main_logging_conf.yaml"))]
+    pub logger_config: String,
 
     /// Name of Profile to check.
     #[arg(short, long)]
@@ -39,7 +43,7 @@ pub struct Args {
     pub verbose: bool,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Performs backup
     Backup,
@@ -54,14 +58,14 @@ pub enum Commands {
     Delete(Delete),
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 pub struct Restore {
     /// Format: "YYYY-MM-DD HH:MM". Timestamp that has to be preceeded by the backup. If not set, the latest backup is chosen.
     #[arg(short, long, value_parser = valid_time_format)]
     pub timestamp: Option<NaiveDateTime>,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 pub struct Delete {
     /// Remove the already created backup files as well
     #[arg(short, long)]

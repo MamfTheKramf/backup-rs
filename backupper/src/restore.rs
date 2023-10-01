@@ -4,6 +4,7 @@ use std::{fs::{self, File}, path::PathBuf, io};
 
 use chrono::NaiveDateTime;
 use config::profile_config::ProfileConfig;
+use log::{error, info, warn, debug};
 use zip::ZipArchive;
 
 use crate::{
@@ -15,11 +16,9 @@ use crate::{
 /// Restores the files from the latest backup of the provided [ProfileConfig] that is older than the given `timestamp`.
 ///
 /// If there is no such backup, nothing happens.
-pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, args: &Args) {
+pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, _args: &Args) {
     if !available_target_dir_dialog(profile_config) {
-        if args.verbose {
-            println!("Target dir {:?} wasn't available and canceled.", profile_config.target_dir);
-        }
+        info!("Target dir {:?} wasn't available and canceled.", profile_config.target_dir);
         return;
     }
 
@@ -59,7 +58,7 @@ fn find_backup_archive(profile_config: &ProfileConfig, timestamp: NaiveDateTime)
     let entries = match fs::read_dir(&profile_config.target_dir) {
         Ok(entries) => entries,
         Err(err) => {
-            println!("Error reading dir: {:?}", err);
+            error!("Error reading dir: {:?}", err);
             return None;
         }
     };
@@ -92,7 +91,7 @@ fn find_backup_archive(profile_config: &ProfileConfig, timestamp: NaiveDateTime)
         let creation_date = match NaiveDateTime::parse_from_str(creation_date, "%Y-%m-%d_%H-%M") {
             Ok(date_time) => date_time,
             Err(e) => {
-                println!("Couldn't parse date {:?} because {:?}", creation_date, e);
+                warn!("Couldn't parse date {:?} because {:?}", creation_date, e);
                 continue;
             }
         };
@@ -101,7 +100,7 @@ fn find_backup_archive(profile_config: &ProfileConfig, timestamp: NaiveDateTime)
         if creation_date <= timestamp
             && best_backup.as_ref().map_or(true, |&(curr_best_date, _)| curr_best_date < creation_date)
         {   
-            println!("Update best_backup to {:?}", creation_date);
+            debug!("Update best_backup to {:?}", creation_date);
             best_backup = Some((creation_date, path));
         }
     }
@@ -115,7 +114,7 @@ fn restore_from_backup(backup_file: PathBuf) {
     let file = match File::open(&backup_file) {
         Ok(file) => file,
         Err(e) => {
-            println!("Error opening file {:?}: {:?}", backup_file, e);
+            error!("Error opening file {:?}: {:?}", backup_file, e);
             return;
         }
     };
@@ -123,7 +122,7 @@ fn restore_from_backup(backup_file: PathBuf) {
     let mut zip = match ZipArchive::new(file) {
         Ok(file) => file,
         Err(e) => {
-            println!("Couldn't create archive because {:?}", e);
+            error!("Couldn't create archive because {:?}", e);
             return;
         }
     };
@@ -132,7 +131,7 @@ fn restore_from_backup(backup_file: PathBuf) {
         let mut file = match zip.by_index(i) {
             Ok(file) => file,
             Err(e) => {
-                println!("Error extracting file: {:?}", e);
+                error!("Error extracting file: {:?}", e);
                 return;
             }
         };
@@ -141,7 +140,7 @@ fn restore_from_backup(backup_file: PathBuf) {
         if let Some(p) = filepath.parent() {
             if !p.exists() {
                 if let Err(e) = fs::create_dir_all(p) {
-                    println!("Couldn't create dir {:?} because {:?}", filepath.parent(), e);
+                    error!("Couldn't create dir {:?} because {:?}", filepath.parent(), e);
                     return;
                 }
             }
@@ -149,12 +148,12 @@ fn restore_from_backup(backup_file: PathBuf) {
         let mut outfile = match fs::File::create(&filepath) {
             Ok(outfile) => outfile,
             Err(e) => {
-                println!("Couldn't create outfile {:?} because {:?}", filepath, e);
+                error!("Couldn't create outfile {:?} because {:?}", filepath, e);
                 return;
             }
         };
         if let Err(e) = io::copy(&mut file, &mut outfile) {
-            println!("Couldn't copy to outfile because {:?}", e);
+            error!("Couldn't copy to outfile because {:?}", e);
             return;
         }
     }

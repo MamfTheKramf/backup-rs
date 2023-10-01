@@ -8,14 +8,26 @@ mod config;
 mod dialog;
 mod scheduler;
 
-use std::process::exit;
+use std::{process::exit, path::PathBuf};
 
 use backup::handle_profile;
 use dialog::info_dialog;
+use log::{info, error};
 use reschedule::reschedule;
 use restore::restore;
 
 use crate::config::soft_load_profile_configs;
+
+fn init_logger(path: &PathBuf) {
+    match log4rs::init_file(path, Default::default()) {
+        Ok(_) => info!("Initialized logger"),
+        Err(e) => {
+            eprintln!("Couldn't initialize logger: {:?}", e);
+            eprintln!("Expected file here: '{:?}'", path);
+            std::process::exit(1);
+        }
+    }
+}
 
 fn main() {
     let orig_path = match std::env::current_dir() {
@@ -25,39 +37,38 @@ fn main() {
     if let Ok(path) = std::env::current_exe() {
         if let Some(parent) = path.parent() {
             if let Err(err) = std::env::set_current_dir(parent.clone()) {
-                println!("Couldn't change working dir beacuase {:?}", err);
+                error!("Couldn't change working dir beacuase {:?}", err);
                 exit(1);
             }
         } else {
-            println!("Couldn't change working directory.");
+            error!("Couldn't change working directory.");
             exit(1);
         }
     }
 
     let args = cli_args::get_args();
+    init_logger(&PathBuf::from(&args.logger_config));
     let general_config = match config::load_general_config(Some(&args.general_config)) {
         Ok(config) => config,
         Err(msg) => {
-            println!("Error loading general config: {}", msg);
+            error!("Error loading general config: {}", msg);
             exit(1);
         }
     };
 
-    if args.verbose {
-        println!("Loaded general config: {:?}", general_config);
-    }
+    info!("Loaded general config: {:?}", general_config);
 
     let profile_configs = match soft_load_profile_configs(&general_config, &args) {
         Ok(configs) => configs,
         Err(msg) => {
-            println!("Error loading profile configs: {}", msg);
+            error!("Error loading profile configs: {}", msg);
             exit(1);
         }
     };
 
-    if args.verbose {
-        println!("Loaded {} profile configs.", profile_configs.len())
-    }
+    info!("Loaded {} profile configs.", profile_configs.len());
+
+    info!("Running subcommand {:?}", args.command);
 
     match &args.command {
         cli_args::Commands::Backup => {
@@ -85,7 +96,7 @@ fn main() {
 
     if let Some(orig_path) = orig_path {
         if let Err(err) = std::env::set_current_dir(orig_path) {
-            println!("Couldn't reset working dir because of {:?}", err);
+            error!("Couldn't reset working dir because of {:?}", err);
         }
     }
 }
