@@ -131,6 +131,15 @@ impl ProfileConfig {
         }
     }
 
+    /// Updates the `next_backup` field by figuring out the next scheduled time point.
+    /// 
+    /// Uses [ProfileConfig::get_next_scheduled] so same warnings apply here
+    pub fn update_next_backup(&mut self) {
+        let next_scheduled =
+            self.get_next_scheduled(Some(offset::Local::now().naive_local()));
+        self.next_backup = next_scheduled;
+    }
+
     /// Converts a [PathBuf] describing a directory and a [Uuid] into a filename.
     fn dir_uuid_to_file(dir: &PathBuf, uuid: Uuid) -> PathBuf {
         PathBuf::from(format!(

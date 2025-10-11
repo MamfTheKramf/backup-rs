@@ -40,9 +40,7 @@ pub fn handle_profile(
 
     // update next_backup if needed
     if update_next_backup {
-        let next_scheduled =
-            profile_config.get_next_scheduled(Some(offset::Local::now().naive_local()));
-        profile_config.next_backup = next_scheduled;
+        profile_config.update_next_backup();
     }
 
     if let Err(err) = profile_config.store(&general_config.profile_configs) {
