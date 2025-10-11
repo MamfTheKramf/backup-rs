@@ -29,18 +29,13 @@ pub fn handle_profile(
     general_config: &GeneralConfig,
     args: &Args,
 ) {
-    let (update_next_backup, do_perform_backup) = is_scheduled(profile_config, args.force);
+    let do_perform_backup = is_scheduled(profile_config, args.force);
 
     // actually perform backup
     if do_perform_backup {
         if let Err(msg) = perform_backup(profile_config, args) {
             error!("{}", msg);
         }
-    }
-
-    // update next_backup if needed
-    if update_next_backup {
-        profile_config.update_next_backup();
     }
 
     if let Err(err) = profile_config.store(&general_config.profile_configs) {
@@ -59,12 +54,17 @@ pub fn handle_profile(
 }
 
 /// Checks if a backup actually has to be performed or if only the `next_backup` field of the profived [ProfileConfig] has to be updated, or none of both.
+/// Will update the next_backup field if necessary.
+/// 
+/// It can happen that this function gets called and only the `next_backup` field has to be updated but no actual backup needs to be performed.
+/// This is the case when current value in `next_backup` is passed but wasn't an actual match
 ///
 /// # Returns
-/// 2 [bool]eans: First one specifies whether the `next_backup` field has to be updated, second one specifies whether a backup shall be performed.
-fn is_scheduled(profile_config: &ProfileConfig, forced: bool) -> (bool, bool) {
+/// `true` if the backup shall be performed; `false` else
+fn is_scheduled(profile_config: &mut ProfileConfig, forced: bool) -> bool {
     if forced {
-        return (true, true);
+        profile_config.update_next_backup();
+        return true;
     }
 
     let now = offset::Local::now().naive_local();
@@ -72,7 +72,7 @@ fn is_scheduled(profile_config: &ProfileConfig, forced: bool) -> (bool, bool) {
 
     // next backup isn't even scheduled for now
     if now < next_backup {
-        return (false, false);
+        return false;
     }
 
     let scheduled = profile_config.get_next_scheduled(None);
@@ -86,7 +86,8 @@ fn is_scheduled(profile_config: &ProfileConfig, forced: bool) -> (bool, bool) {
 
     let skipped_match = next_backup_matches || skipped_scheduled && scheduled_matches;
 
-    (true, skipped_match)
+    profile_config.update_next_backup();
+    skipped_match
 }
 
 /// Performs actual backup.
@@ -314,30 +315,36 @@ mod backup_tests {
         fn forced_not_scheduled_yet() {
             let mut profile_config =
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
-            profile_config.next_backup =
-                NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
-
-            assert_eq!(is_scheduled(&profile_config, true), (true, true));
+            let first_value = NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
+            profile_config.next_backup = first_value.clone();
+                
+            let actual = is_scheduled(&mut profile_config, true);
+            assert!(actual);
+            assert_ne!(profile_config.next_backup, first_value);
         }
 
         #[test]
         fn forced_missed_next_backup() {
             let mut profile_config =
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
-            profile_config.next_backup =
-                NaiveDateTime::parse_from_str("2000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
-
-            assert_eq!(is_scheduled(&profile_config, true), (true, true));
+            let first_value = NaiveDateTime::parse_from_str("2000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
+            profile_config.next_backup = first_value.clone();
+                
+            let actual = is_scheduled(&mut profile_config, true);
+            assert!(actual);
+            assert_ne!(profile_config.next_backup, first_value);
         }
 
         #[test]
         fn not_scheduled_yet() {
             let mut profile_config =
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
-            profile_config.next_backup =
-                NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
-
-            assert_eq!(is_scheduled(&profile_config, false), (false, false));
+            let first_value = NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
+            profile_config.next_backup = first_value.clone();
+                
+            let actual = is_scheduled(&mut profile_config, false);
+            assert!(!actual);
+            assert_eq!(profile_config.next_backup, first_value);
         }
 
         #[test]
@@ -348,12 +355,15 @@ mod backup_tests {
                     .build()
                     .unwrap(),
             );
-            profile_config.next_backup = chrono::Local::now()
+            let first_value = chrono::Local::now()
                 .naive_local()
                 .checked_sub_signed(Duration::hours(1))
                 .unwrap();
 
-            assert_eq!(is_scheduled(&profile_config, false), (true, false));
+            profile_config.next_backup = first_value;
+            let actual = is_scheduled(&mut profile_config, false);
+            assert!(!actual);
+            assert_ne!(profile_config.next_backup, first_value);
         }
 
         #[test]
@@ -376,8 +386,10 @@ mod backup_tests {
                 .unwrap()
                 .with_hour(0)
                 .unwrap();
-            profile_config.next_backup = morning;
-            assert_eq!(is_scheduled(&profile_config, false), (true, true));
+            profile_config.next_backup = morning.clone();
+            let actual = is_scheduled(&mut profile_config, false);
+            assert!(actual);
+            assert_ne!(profile_config.next_backup, morning);
         }
 
         #[test]
@@ -397,9 +409,10 @@ mod backup_tests {
             .with_nanosecond(0).unwrap()
             .with_second(0).unwrap()
             .with_minute(0).unwrap();
-            profile_config.next_backup = five_hours_ago;
-
-            assert_eq!(is_scheduled(&profile_config, false), (true, true));
+            profile_config.next_backup = five_hours_ago.clone();
+            let actual = is_scheduled(&mut profile_config, false);
+            assert!(actual);
+            assert_ne!(profile_config.next_backup, five_hours_ago);
         }
 
         #[test]
@@ -412,13 +425,15 @@ mod backup_tests {
                     .unwrap(),
             );
 
-
-            profile_config.next_backup = chrono::Local::now()
+            let first_value = chrono::Local::now()
                 .naive_local()
                 .checked_sub_signed(Duration::hours(5))
                 .unwrap();
 
-            assert_eq!(is_scheduled(&profile_config, false), (true, true));
+            profile_config.next_backup = first_value.clone();
+            let actual = is_scheduled(&mut profile_config, false);
+            assert!(actual);
+            assert_ne!(profile_config.next_backup, first_value);
         }
 
         #[test]
@@ -435,9 +450,11 @@ mod backup_tests {
             );
 
             let feb_29th_2004 = NaiveDateTime::parse_from_str("2004-02-29 00:00", "%Y-%m-%d %H:%M").unwrap();
-            profile_config.next_backup = feb_29th_2004;
+            profile_config.next_backup = feb_29th_2004.clone();
 
-            assert_eq!(is_scheduled(&profile_config, false), (true, true));
+            let actual = is_scheduled(&mut profile_config, false);
+            assert!(actual);
+            assert_ne!(profile_config.next_backup, feb_29th_2004);
         }
 
         #[test]
@@ -454,9 +471,11 @@ mod backup_tests {
             );
 
             let apr_1st_2004 = NaiveDateTime::parse_from_str("2004-03-1 00:00", "%Y-%m-%d %H:%M").unwrap();
-            profile_config.next_backup = apr_1st_2004;
+            profile_config.next_backup = apr_1st_2004.clone();
 
-            assert_eq!(is_scheduled(&profile_config, false), (true, false));
+            let actual = is_scheduled(&mut profile_config, false);
+            assert!(!actual);
+            assert_ne!(profile_config.next_backup, apr_1st_2004);
         }
     }
 }
