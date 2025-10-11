@@ -37,7 +37,7 @@ fn main() {
     };
     if let Ok(path) = std::env::current_exe() {
         if let Some(parent) = path.parent() {
-            if let Err(err) = std::env::set_current_dir(parent.clone()) {
+            if let Err(err) = std::env::set_current_dir(parent) {
                 error!("Couldn't change working dir because {:?}", err);
                 exit(exitcode::OSERR);
             }
