@@ -1,9 +1,7 @@
 //! Contains functions for actually creating a backup file.
 
 use std::{
-    fs::{self, File, OpenOptions},
-    io::{Read, Write},
-    path::PathBuf,
+    collections::HashMap, fs::{self, File, OpenOptions}, io::{Read, Write}, path::PathBuf
 };
 
 use chrono::offset;
@@ -11,10 +9,11 @@ use config::{
     general_config::GeneralConfig, interval::DateTimeMatch, profile_config::ProfileConfig,
 };
 use log::{error, warn, info, debug};
+use uuid::Uuid;
 use zip::{write::FileOptions, ZipWriter};
 
 use crate::{
-    cli_args::Args, common::is_target_dir_available, consts::PROFILE_CONF_NAME, dialog::{retry_dialog, DialogResult, RETRY}, scheduler::schedule_backup
+    cli_args::Args, common::is_target_dir_available, consts::{PROFILE_CONF_NAME, FILE_RECORD_NAME}, dialog::{retry_dialog, DialogResult, RETRY}, scheduler::schedule_backup
 };
 
 /// Handles the provided [ProfileConfig].
@@ -146,19 +145,33 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     }
     debug!("Successfully stored ProfileConfig");
 
+    let mut file_record: HashMap<Uuid, String> = HashMap::new();
+
     // add all directories
     for dir in &profile_config.dirs_to_include {
-        if let Err(msg) = add_directory(&mut zip, dir, profile_config, args) {
+        if let Err(msg) = add_directory(&mut zip, dir, profile_config, &mut file_record, args) {
             warn!("Couldn't add dir {:?} because {:?}", dir, msg);
         }
     }
 
     // add all files
     for file in &profile_config.files_to_include {
-        if let Err(msg) = add_file(&mut zip, file, profile_config, args) {
+        if let Err(msg) = add_file(&mut zip, file, profile_config, &mut file_record, args) {
             warn!("Couldn't add file {:?} because {:?}", file, msg);
         }
     }
+
+    // add file record
+    debug!("Store FileRecord");
+    if let Err(err) = zip.start_file(FILE_RECORD_NAME, FileOptions::default()) {
+        remove_archive(zip, path);
+        return Err(format!("Couldn't add file_record to archive because of {:?}", err));
+    }
+    if let Err(err) = serde_json::to_writer(&mut zip, &file_record) {
+        remove_archive(zip, path);
+        return Err(format!("Couldn't write file_record to archive because of {:?}", err));
+    }
+    debug!("Successfully added FileRecord");
 
     if let Err(err) = zip.finish() {
         remove_archive(zip, path);
@@ -182,6 +195,7 @@ fn add_directory(
     zip: &mut ZipWriter<File>,
     dir: &PathBuf,
     profile_config: &ProfileConfig,
+    file_record: &mut HashMap<Uuid, String>,
     args: &Args,
 ) -> Result<(), String> {
     if !dir.is_dir() {
@@ -205,14 +219,14 @@ fn add_directory(
 
         // go recursively into directories
         if path.is_dir() {
-            if let Err(msg) = add_directory(zip, &path, profile_config, args) {
+            if let Err(msg) = add_directory(zip, &path, profile_config, file_record, args) {
                 warn!("{}", msg);
             }
         }
 
         // actually store file
         if path.is_file() {
-            match write_to_zip(&path, zip, args) {
+            match write_to_zip(&path, zip, file_record, args) {
                 Ok(_) => (),
                 Err(msg) => {
                     warn!("{}", msg);
@@ -228,6 +242,7 @@ fn add_file(
     zip: &mut ZipWriter<File>,
     file: &PathBuf,
     profile_config: &ProfileConfig,
+    file_record: &mut HashMap<Uuid, String>,
     args: &Args,
 ) -> Result<(), String> {
     if !file.is_file() {
@@ -243,14 +258,14 @@ fn add_file(
         return Ok(());
     }
 
-    write_to_zip(file, zip, args)
+    write_to_zip(file, zip, file_record, args)
 }
 
 /// Attempts to write the file at the specified `path` to the `zip`.
 ///
 /// # Errors
 /// Returns an [Err] describing the issue if something goes wrong
-fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, _args: &Args) -> Result<(), String> {
+fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, file_record: &mut HashMap<Uuid, String>, _args: &Args) -> Result<(), String> {
     let mut file = match File::open(path) {
         Ok(file) => file,
         Err(err) => {
@@ -261,10 +276,13 @@ fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, _args: &Args) -> Resu
         }
     };
 
-    debug!("Store {:?}", path);
+    let id = Uuid::new_v4();
+
+    debug!("Store {:?} with id {}", path, id);
 
     let name = String::from(path.to_str().unwrap_or(""));
-    if let Err(err) = zip.start_file(name, FileOptions::default()) {
+    file_record.insert(id.clone(), name);
+    if let Err(err) = zip.start_file(id, FileOptions::default()) {
         return Err(format!(
             "Couldn't start file {:?} because of {:?}",
             path, err
