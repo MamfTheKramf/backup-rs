@@ -13,7 +13,7 @@ use uuid::Uuid;
 use zip::{write::FileOptions, ZipWriter};
 
 use crate::{
-    cli_args::Args, common::is_target_dir_available, consts::{PROFILE_CONF_NAME, FILE_RECORD_NAME}, dialog::{retry_dialog, DialogResult, RETRY}, scheduler::schedule_backup
+    cli_args::Args, common::is_target_dir_available, consts::{FILE_RECORD_NAME, MANIFEST_NAME, PROFILE_CONF_NAME}, dialog::{retry_dialog, DialogResult, RETRY}, manifest::Manifest, scheduler::schedule_backup
 };
 
 /// Handles the provided [ProfileConfig].
@@ -91,7 +91,7 @@ fn is_scheduled(profile_config: &mut ProfileConfig, forced: bool) -> bool {
 ///
 /// 1. Check if the target directory for the zip archive is accesible and opens retry dialog boxes until it is accesibly, or the backup is cancelled.
 /// 2. Creates a file for the zip archive.
-/// 3. Add the current profile config to the zip archive to later fully recover
+/// 3. Add the current profile config and manifest to the zip archive to later fully recover
 /// 4. Recursively goes through directories to include and add each file not matched by the excluded files to the archive
 /// 5. Goes through the files to include and adds each file, not matched by the included dirs to the archive
 /// 7. Writes file record to the archive
@@ -144,6 +144,16 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
         return Err(format!("Couldn't write profile config to archive: {:?}", err));
     }
     debug!("Successfully stored ProfileConfig");
+
+    // write manifest to archive
+    debug!("Store Manifest");
+    if let Err(err) = zip.start_file(MANIFEST_NAME, FileOptions::default()) {
+        return Err(format!("Couldn't add manifest: {:?}", err));
+    }
+    if let Err(err) = serde_json::to_writer(&mut zip, &Manifest::new()) {
+        return Err(format!("Couldn't write manifest to archive: {:?}", err));
+    }
+    debug!("Successfully stored manifest");
 
     let mut file_record: HashMap<Uuid, String> = HashMap::new();
 
