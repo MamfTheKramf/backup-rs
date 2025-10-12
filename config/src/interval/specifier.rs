@@ -1,7 +1,7 @@
 //! Contains [Specifier] Struct that can be used to specify certain numbers from a range.
 //! For example, can be used to always take the first or the last or every `n`-th with an offset.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Represents a specifier.
 /// Has a range of possible values and a specifier rule that filters out all none-specified values in that range.
@@ -114,7 +114,7 @@ pub enum SpecifierKind {
     /// assert!(spec.matches(35));
     /// assert!(!spec.matches(24));
     /// assert!(!spec.matches(32));
-    /// 
+    ///
     /// assert_eq!(spec.cyclic_next(20), Some(30));
     /// assert_eq!(spec.cyclic_next(30), Some(35));
     /// assert_eq!(spec.cyclic_next(35), Some(50));
@@ -134,7 +134,7 @@ pub enum SpecifierKind {
     /// assert!(!spec.matches(2));
     /// assert!(spec.matches(5));
     /// assert!(!spec.matches(6));
-    /// 
+    ///
     /// assert_eq!(spec.cyclic_next(0), Some(1));
     /// assert_eq!(spec.cyclic_next(1), Some(3));
     /// assert_eq!(spec.cyclic_next(3), Some(5));
@@ -154,7 +154,7 @@ pub enum SpecifierKind {
     /// assert!(!spec.matches(140));
     /// assert!(!spec.matches(587));
     /// assert!(!spec.matches(1000));
-    /// 
+    ///
     /// assert_eq!(spec.cyclic_next(128), Some(256));
     /// assert_eq!(spec.cyclic_next(256), Some(512));
     /// assert_eq!(spec.cyclic_next(512), Some(1024));
@@ -258,13 +258,13 @@ where
     }
 
     /// Returns the first (smallest) element from the range that is matched, ot none if there is no match
-    /// 
+    ///
     /// # Example
     /// ```
     /// use config::interval::*;
     /// let spec = Specifier::new(10u32, 20u32, SpecifierKind::EveryNth(5, 5));
     /// assert_eq!(spec.first_match().unwrap(), 15);
-    /// 
+    ///
     /// let spec = Specifier::new(10u32, 20u32, SpecifierKind::EveryNth(100, 400));
     /// assert!(spec.first_match().is_none());
     /// ```
@@ -630,7 +630,7 @@ mod specifier_tests {
             let b = 77u32;
             let spec = Specifier::new(a, b, SpecifierKind::First);
             assert!(spec.matches(a));
-            for x in (a+1)..=b {
+            for x in (a + 1)..=b {
                 assert!(!spec.matches(x));
             }
         }

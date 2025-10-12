@@ -126,24 +126,20 @@ enum Identifyier {
 /// Tries to delete the JSON file of that profile config
 async fn delete_profile_config(
     backupper_path: &PathBuf,
-    id: Identifyier
+    id: Identifyier,
 ) -> Result<String, String> {
     let mut output = rocket::tokio::process::Command::new(backupper_path.as_os_str());
 
     match &id {
         Identifyier::Name(name) => {
-            output.arg("-n")
-                .arg(name);
+            output.arg("-n").arg(name);
         }
         Identifyier::Uuid(uuid) => {
-            output.arg("-u")
-                .arg(uuid.as_hyphenated().to_string());
-        },
+            output.arg("-u").arg(uuid.as_hyphenated().to_string());
+        }
     }
 
-    let output = output.arg("delete")
-        .output()
-        .await;
+    let output = output.arg("delete").output().await;
     log::debug!("{:#?}", output);
     match output {
         Ok(output) => match output.status.code() {
@@ -173,7 +169,7 @@ pub async fn delete_profile_config_by_name(
         Ok(msg) => {
             log::debug!("{}", msg);
             Ok(Status::NoContent)
-        },
+        }
         Err(msg) => {
             log::warn!("{}", msg);
             Err((Status::InternalServerError, msg))
@@ -233,7 +229,7 @@ pub async fn delete_profile_config_by_uuid(
         Ok(msg) => {
             log::debug!("{}", msg);
             Ok(Status::NoContent)
-        },
+        }
         Err(msg) => {
             log::warn!("{}", msg);
             Err((Status::InternalServerError, msg))

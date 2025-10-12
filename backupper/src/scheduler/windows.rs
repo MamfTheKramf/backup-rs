@@ -39,9 +39,7 @@ unsafe fn get_task_folder(service: &ITaskService, folder_name: &BSTR) -> Result<
         return Ok(folder);
     }
     // create folder new
-    let root_folder = service
-        .GetFolder(&BSTR::from(ROOT_FOLDER))
-        .or(Err(()))?;
+    let root_folder = service.GetFolder(&BSTR::from(ROOT_FOLDER)).or(Err(()))?;
     root_folder
         .CreateFolder(folder_name, windows::Win32::System::Com::VARIANT::default())
         .or(Err(()))
@@ -230,16 +228,15 @@ pub fn unschedule_backup(uuid: Uuid) -> Result<(), String> {
 
         let task_folder = get_task_folder(&service, &BSTR::from(folder_name))
             .or_else(|_| transform_err("Couldn't create task folder"))?;
-        
-        task_folder.DeleteTask(&task_name, 0)
-            .or_else(|e| {
-                #[allow(overflowing_literals)]
-                if e.code() == HRESULT(0x80070002) {
-                    Ok::<(), String>(())
-                } else {
-                    Err(e.message().to_string())
-                }
-            })?;
+
+        task_folder.DeleteTask(&task_name, 0).or_else(|e| {
+            #[allow(overflowing_literals)]
+            if e.code() == HRESULT(0x80070002) {
+                Ok::<(), String>(())
+            } else {
+                Err(e.message().to_string())
+            }
+        })?;
     }
     Ok(())
 }

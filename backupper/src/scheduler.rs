@@ -1,11 +1,11 @@
 //! Contains function for scheduling the execution of this binary for a certain datetime
-//! 
+//!
 //! # TODO
 //! [] Scheduling on Linux
 
 use chrono::NaiveDateTime;
-use uuid::Uuid;
 use log::info;
+use uuid::Uuid;
 
 #[cfg(target_family = "windows")]
 mod windows;

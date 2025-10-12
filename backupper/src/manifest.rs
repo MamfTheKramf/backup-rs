@@ -48,7 +48,7 @@ impl Manifest {
 }
 
 /// Simple parser for semver version strings
-/// 
+///
 /// # Resturns
 /// [Vec] of [u32]s where every part between dots that couldn't be parsed is omitted
 fn parse_version(version_str: &str) -> Vec<u32> {

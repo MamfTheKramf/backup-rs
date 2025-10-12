@@ -17,7 +17,7 @@ pub struct GeneralConfig {
 
 impl GeneralConfig {
     /// Reads general configuration from the file at the provided path.
-    /// 
+    ///
     /// # Returns
     /// [Ok] containing a [GeneralConfig] instance or an [Error]
     pub fn read(global_config_file: &PathBuf) -> Result<GeneralConfig, Error> {
@@ -31,7 +31,7 @@ impl GeneralConfig {
 
     /// Stores general configuration from the file at the provided path.
     /// Will create a file, if it doesn't exist yet.
-    /// 
+    ///
     /// # Returns
     /// [Ok] containing a [GeneralConfig] instance or an [Error]
     pub fn store(&self, global_config_file: &PathBuf) -> Result<(), Error> {

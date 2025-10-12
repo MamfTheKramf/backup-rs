@@ -1,10 +1,13 @@
-use std::{path::PathBuf, process::{Command, self}};
+use std::{
+    path::PathBuf,
+    process::{self, Command},
+};
 
 use cli_args::{parse_args, Args};
 use config::general_config::GeneralConfig;
+use exitcode;
 use log::info;
 use rocket::fs::FileServer;
-use exitcode;
 
 #[macro_use]
 extern crate rocket;
@@ -26,19 +29,17 @@ fn init_logger(path: &PathBuf) {
 /// Checks if the path to the backupper executable is valid by trying to call the `-V` command.
 fn check_backupper(args: &Args) -> bool {
     let backupper_path = PathBuf::from(&args.backupper);
-    let result = Command::new(backupper_path)
-        .arg("-V")
-        .output();
+    let result = Command::new(backupper_path).arg("-V").output();
 
     match result {
         Ok(output) => {
             log::info!("Output of \"{} -V\": {:?}", &args.backupper, output);
             true
-        },
+        }
         Err(e) => {
             log::error!("Couldn't execute backupper: {:?}", e);
             false
-        },
+        }
     }
 }
 

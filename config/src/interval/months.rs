@@ -1,6 +1,6 @@
 //! Contains struct for Months
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Number of months.
 /// `N-1` is the largest number, a `try_from` will work with.
@@ -10,7 +10,7 @@ pub const N: u8 = 12;
 /// Allows to associate numbers with days of the week starting with January as 0 and ending with December as 12
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct Month {
-    month: u8
+    month: u8,
 }
 
 impl Month {
@@ -18,7 +18,7 @@ impl Month {
     const fn new(month: u8) -> Month {
         Month { month }
     }
-    
+
     /// Creates a weekday representing January
     #[allow(non_snake_case)]
     pub const fn January() -> Month {
@@ -88,12 +88,12 @@ impl Into<u32> for Month {
 }
 
 impl From<u32> for Month {
-    /// Converts [u32] cyclicly into [Month]. 
+    /// Converts [u32] cyclicly into [Month].
     ///
     /// # Example
     /// ```
     /// use config::interval::*;
-    /// 
+    ///
     /// assert_eq!(Month::from(0), Month::January());
     /// assert_eq!(Month::from(7), Month::August());
     /// assert_eq!(Month::from(17), Month::June());

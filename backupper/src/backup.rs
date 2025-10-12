@@ -1,19 +1,27 @@
 //! Contains functions for actually creating a backup file.
 
 use std::{
-    collections::HashMap, fs::{self, File, OpenOptions}, io::{Read, Write}, path::PathBuf
+    collections::HashMap,
+    fs::{self, File, OpenOptions},
+    io::{Read, Write},
+    path::PathBuf,
 };
 
 use chrono::offset;
 use config::{
     general_config::GeneralConfig, interval::DateTimeMatch, profile_config::ProfileConfig,
 };
-use log::{error, warn, info, debug};
+use log::{debug, error, info, warn};
 use uuid::Uuid;
 use zip::{write::FileOptions, ZipWriter};
 
 use crate::{
-    cli_args::Args, common::is_target_dir_available, consts::{FILE_RECORD_NAME, MANIFEST_NAME, PROFILE_CONF_NAME}, dialog::{retry_dialog, DialogResult, RETRY}, manifest::Manifest, scheduler::schedule_backup
+    cli_args::Args,
+    common::is_target_dir_available,
+    consts::{FILE_RECORD_NAME, MANIFEST_NAME, PROFILE_CONF_NAME},
+    dialog::{retry_dialog, DialogResult, RETRY},
+    manifest::Manifest,
+    scheduler::schedule_backup,
 };
 
 /// Handles the provided [ProfileConfig].
@@ -52,7 +60,7 @@ pub fn handle_profile(
 
 /// Checks if a backup actually has to be performed or if only the `next_backup` field of the profived [ProfileConfig] has to be updated, or none of both.
 /// Will update the next_backup field if necessary.
-/// 
+///
 /// It can happen that this function gets called and only the `next_backup` field has to be updated but no actual backup needs to be performed.
 /// This is the case when current value in `next_backup` is passed but wasn't an actual match
 ///
@@ -96,13 +104,15 @@ fn is_scheduled(profile_config: &mut ProfileConfig, forced: bool) -> bool {
 /// 5. Goes through the files to include and adds each file, not matched by the included dirs to the archive
 /// 7. Writes file record to the archive
 /// 6. Stores zip an exits
-/// 
+///
 /// Files are added by giving them a unique name. This unique name is then mapped to the original file path and stored within a record
 /// That record is also written to the archive
 fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::Result<(), String> {
     // if target dir isn't available, open dialog
     let mut choice = DialogResult(RETRY);
-    while !is_target_dir_available(&profile_config.target_dir, true) && choice == DialogResult(RETRY) {
+    while !is_target_dir_available(&profile_config.target_dir, true)
+        && choice == DialogResult(RETRY)
+    {
         let msg = format!("Das Verzeichnis {:?} scheint nicht verfügpar zu sein.\nBitte schließe die externe Festplatte an und versuche es erneut.", profile_config.target_dir);
         let title = "Zielfverzeichnis nicht verfügbar.";
         choice = retry_dialog(title, &msg);
@@ -141,7 +151,10 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
         return Err(format!("Couldn't add profile config: {:?}", err));
     }
     if let Err(err) = serde_json::to_writer(&mut zip, profile_config) {
-        return Err(format!("Couldn't write profile config to archive: {:?}", err));
+        return Err(format!(
+            "Couldn't write profile config to archive: {:?}",
+            err
+        ));
     }
     debug!("Successfully stored ProfileConfig");
 
@@ -175,11 +188,17 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
     debug!("Store FileRecord");
     if let Err(err) = zip.start_file(FILE_RECORD_NAME, FileOptions::default()) {
         remove_archive(zip, path);
-        return Err(format!("Couldn't add file_record to archive because of {:?}", err));
+        return Err(format!(
+            "Couldn't add file_record to archive because of {:?}",
+            err
+        ));
     }
     if let Err(err) = serde_json::to_writer(&mut zip, &file_record) {
         remove_archive(zip, path);
-        return Err(format!("Couldn't write file_record to archive because of {:?}", err));
+        return Err(format!(
+            "Couldn't write file_record to archive because of {:?}",
+            err
+        ));
     }
     debug!("Successfully added FileRecord");
 
@@ -275,7 +294,12 @@ fn add_file(
 ///
 /// # Errors
 /// Returns an [Err] describing the issue if something goes wrong
-fn write_to_zip(path: &PathBuf, zip: &mut ZipWriter<File>, file_record: &mut HashMap<Uuid, String>, _args: &Args) -> Result<(), String> {
+fn write_to_zip(
+    path: &PathBuf,
+    zip: &mut ZipWriter<File>,
+    file_record: &mut HashMap<Uuid, String>,
+    _args: &Args,
+) -> Result<(), String> {
     let mut file = match File::open(path) {
         Ok(file) => file,
         Err(err) => {
@@ -356,9 +380,10 @@ mod backup_tests {
         fn forced_not_scheduled_yet() {
             let mut profile_config =
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
-            let first_value = NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
+            let first_value =
+                NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
             profile_config.next_backup = first_value.clone();
-                
+
             let actual = is_scheduled(&mut profile_config, true);
             assert!(actual);
             assert_ne!(profile_config.next_backup, first_value);
@@ -368,9 +393,10 @@ mod backup_tests {
         fn forced_missed_next_backup() {
             let mut profile_config =
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
-            let first_value = NaiveDateTime::parse_from_str("2000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
+            let first_value =
+                NaiveDateTime::parse_from_str("2000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
             profile_config.next_backup = first_value.clone();
-                
+
             let actual = is_scheduled(&mut profile_config, true);
             assert!(actual);
             assert_ne!(profile_config.next_backup, first_value);
@@ -380,9 +406,10 @@ mod backup_tests {
         fn not_scheduled_yet() {
             let mut profile_config =
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
-            let first_value = NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
+            let first_value =
+                NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
             profile_config.next_backup = first_value.clone();
-                
+
             let actual = is_scheduled(&mut profile_config, false);
             assert!(!actual);
             assert_eq!(profile_config.next_backup, first_value);
@@ -444,12 +471,15 @@ mod backup_tests {
             );
 
             let five_hours_ago = chrono::Local::now()
-            .naive_local()
-            .checked_sub_signed(Duration::hours(5))
-            .unwrap()
-            .with_nanosecond(0).unwrap()
-            .with_second(0).unwrap()
-            .with_minute(0).unwrap();
+                .naive_local()
+                .checked_sub_signed(Duration::hours(5))
+                .unwrap()
+                .with_nanosecond(0)
+                .unwrap()
+                .with_second(0)
+                .unwrap()
+                .with_minute(0)
+                .unwrap();
             profile_config.next_backup = five_hours_ago.clone();
             let actual = is_scheduled(&mut profile_config, false);
             assert!(actual);
@@ -485,12 +515,15 @@ mod backup_tests {
                     .minutes(config::interval::SpecifierKind::First)
                     .hours(config::interval::SpecifierKind::First)
                     .monthdays(config::interval::SpecifierKind::Nth(28)) // 28 because we start counting with 0
-                    .months(config::interval::SpecifierKind::Nth(Month::February().into()))
+                    .months(config::interval::SpecifierKind::Nth(
+                        Month::February().into(),
+                    ))
                     .build()
                     .unwrap(),
             );
 
-            let feb_29th_2004 = NaiveDateTime::parse_from_str("2004-02-29 00:00", "%Y-%m-%d %H:%M").unwrap();
+            let feb_29th_2004 =
+                NaiveDateTime::parse_from_str("2004-02-29 00:00", "%Y-%m-%d %H:%M").unwrap();
             profile_config.next_backup = feb_29th_2004.clone();
 
             let actual = is_scheduled(&mut profile_config, false);
@@ -506,12 +539,15 @@ mod backup_tests {
                     .minutes(config::interval::SpecifierKind::First)
                     .hours(config::interval::SpecifierKind::First)
                     .monthdays(config::interval::SpecifierKind::Nth(28))
-                    .months(config::interval::SpecifierKind::Nth(Month::February().into()))
+                    .months(config::interval::SpecifierKind::Nth(
+                        Month::February().into(),
+                    ))
                     .build()
                     .unwrap(),
             );
 
-            let apr_1st_2004 = NaiveDateTime::parse_from_str("2004-03-1 00:00", "%Y-%m-%d %H:%M").unwrap();
+            let apr_1st_2004 =
+                NaiveDateTime::parse_from_str("2004-03-1 00:00", "%Y-%m-%d %H:%M").unwrap();
             profile_config.next_backup = apr_1st_2004.clone();
 
             let actual = is_scheduled(&mut profile_config, false);

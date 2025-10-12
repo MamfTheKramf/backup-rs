@@ -37,7 +37,6 @@ fn delete_backup_files(uuid: &Uuid, dir: &PathBuf) -> Result<(), String> {
                 error!("Couldn't delete {:?}. Got: {:#?}", path, e);
             }
         }
-
     }
 
     Ok(())

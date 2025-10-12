@@ -10,8 +10,4 @@ pub const MANIFEST_NAME: &str = ".MANIFEST";
 pub const FILE_RECORD_NAME: &str = ".FILE_RECORD";
 
 /// List of reserved filenames to make it easier to filter out
-pub const RESERVED_FILENAMES: [&str; 3] = [
-    PROFILE_CONF_NAME,
-    MANIFEST_NAME,
-    FILE_RECORD_NAME,
-];
+pub const RESERVED_FILENAMES: [&str; 3] = [PROFILE_CONF_NAME, MANIFEST_NAME, FILE_RECORD_NAME];

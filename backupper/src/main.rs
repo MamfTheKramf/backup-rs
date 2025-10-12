@@ -1,23 +1,23 @@
-mod common;
 mod backup;
-mod restore;
-mod reschedule;
-mod delete;
 mod cli_args;
+mod common;
 mod config;
-mod dialog;
-mod scheduler;
 mod consts;
+mod delete;
+mod dialog;
 mod manifest;
+mod reschedule;
+mod restore;
+mod scheduler;
 
-use std::{process::exit, path::PathBuf};
+use std::{path::PathBuf, process::exit};
 
 use backup::handle_profile;
 use dialog::info_dialog;
-use log::{info, error};
+use exitcode;
+use log::{error, info};
 use reschedule::reschedule;
 use restore::restore;
-use exitcode;
 
 use crate::config::soft_load_profile_configs;
 
@@ -81,21 +81,32 @@ fn main() {
             for mut profile_config in profile_configs {
                 handle_profile(&mut profile_config, &general_config, &args)
             }
-        
-            info_dialog("Backup Abgeschlossen", "Das Backup ist abgeschlossen. Die externe Festplatte kann jetzt entfernt werden.");
-        },
+
+            info_dialog(
+                "Backup Abgeschlossen",
+                "Das Backup ist abgeschlossen. Die externe Festplatte kann jetzt entfernt werden.",
+            );
+        }
         cli_args::Commands::Restore(restore_params) => {
-            let timestamp = restore_params.timestamp.unwrap_or_else(|| chrono::Local::now().naive_local());
+            let timestamp = restore_params
+                .timestamp
+                .unwrap_or_else(|| chrono::Local::now().naive_local());
             for profile_config in profile_configs {
                 restore(&profile_config, timestamp, &args);
             }
-        },
-        cli_args::Commands::Reschedule => for mut profile_config in profile_configs {
-            reschedule(&mut profile_config, &general_config);
-        },
+        }
+        cli_args::Commands::Reschedule => {
+            for mut profile_config in profile_configs {
+                reschedule(&mut profile_config, &general_config);
+            }
+        }
         cli_args::Commands::Delete(delete_params) => {
             for profile_config in profile_configs {
-                delete::delete(&profile_config, &general_config, delete_params.remove_backups);
+                delete::delete(
+                    &profile_config,
+                    &general_config,
+                    delete_params.remove_backups,
+                );
             }
         }
     }

@@ -1,6 +1,6 @@
 //! Contains struct for Weekdays
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Number of weekdays.
 /// `N-1` is the largest number, a `try_from` will work with.
@@ -10,7 +10,7 @@ pub const N: u8 = 7;
 /// Allows to associate numbers with days of the week starting with Monday as 0 and ending with Sunday as 6
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct Weekday {
-    day: u8
+    day: u8,
 }
 
 impl Weekday {
@@ -18,7 +18,7 @@ impl Weekday {
     const fn new(day: u8) -> Weekday {
         Weekday { day }
     }
-    
+
     /// Creates a weekday representing Monday
     #[allow(non_snake_case)]
     pub const fn Monday() -> Weekday {
@@ -56,11 +56,11 @@ impl Weekday {
     }
 
     /// Turns into the weekday representing tomorrow
-    /// 
+    ///
     /// # Example
     /// ```
     /// use config::interval::*;
-    /// 
+    ///
     /// let today = Weekday::Monday();
     /// let tomorrow = today.tomorrow();
     /// let tue = Weekday::Tuesday();
@@ -71,11 +71,11 @@ impl Weekday {
     }
 
     /// Turns into the weekday representing tomorrow
-    /// 
+    ///
     /// # Example
     /// ```
     /// use config::interval::*;
-    /// 
+    ///
     /// let today = Weekday::Monday();
     /// let yesterday = today.yesterday();
     /// let sun = Weekday::Sunday();
@@ -94,11 +94,11 @@ impl Into<u32> for Weekday {
 
 impl From<u32> for Weekday {
     /// Converts [u32] cyclicly into [Weekday].
-    /// 
+    ///
     /// # Example
     /// ```
     /// use config::interval::*;
-    /// 
+    ///
     /// assert_eq!(Weekday::from(0), Weekday::Monday());
     /// assert_eq!(Weekday::from(5), Weekday::Saturday());
     /// assert_eq!(Weekday::from(25), Weekday::Friday());

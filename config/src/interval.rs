@@ -144,34 +144,52 @@ impl Interval {
     pub fn validate(&self) -> Result<(), String> {
         let own_range = self.minutes.min()..=self.minutes.max();
         if own_range != MINUTES_RANGE {
-            return Err(format!("Minutes are not in range {:?}. Got {:?}", MINUTES_RANGE, own_range));
+            return Err(format!(
+                "Minutes are not in range {:?}. Got {:?}",
+                MINUTES_RANGE, own_range
+            ));
         }
 
         let own_range = self.hours.min()..=self.hours.max();
         if own_range != HOURS_RANGE {
-            return Err(format!("Hours are not in range {:?}. Got {:?}", HOURS_RANGE, own_range));
+            return Err(format!(
+                "Hours are not in range {:?}. Got {:?}",
+                HOURS_RANGE, own_range
+            ));
         }
 
         let own_range = self.weekdays.min()..=self.weekdays.max();
         if own_range != WEEKDAYS_RANGE {
-            return Err(format!("Weekdays are not in range {:?}. Got {:?}", WEEKDAYS_RANGE, own_range));
+            return Err(format!(
+                "Weekdays are not in range {:?}. Got {:?}",
+                WEEKDAYS_RANGE, own_range
+            ));
         }
 
         let own_range = self.monthdays.min()..=self.monthdays.max();
         if own_range != MONTHDAYS_RANGE {
-            return Err(format!("Monthdays are not in range {:?}. Got {:?}", MONTHDAYS_RANGE, own_range));
+            return Err(format!(
+                "Monthdays are not in range {:?}. Got {:?}",
+                MONTHDAYS_RANGE, own_range
+            ));
         }
 
         let own_range = self.weeks.min()..=self.weeks.max();
         if own_range != WEEKS_RANGE {
-            return Err(format!("Weeks are not in range {:?}. Got {:?}", WEEKS_RANGE, own_range));
+            return Err(format!(
+                "Weeks are not in range {:?}. Got {:?}",
+                WEEKS_RANGE, own_range
+            ));
         }
 
         let own_range = self.months.min()..=self.months.max();
         if own_range != MONTHS_RANGE {
-            return Err(format!("Months are not in range {:?}. Got {:?}", MONTHS_RANGE, own_range));
+            return Err(format!(
+                "Months are not in range {:?}. Got {:?}",
+                MONTHS_RANGE, own_range
+            ));
         }
-    
+
         Ok(())
     }
 
@@ -546,7 +564,11 @@ mod interval_tests {
             let mut interval = Interval {
                 minutes: Specifier::new(0, 59, SpecifierKind::All),
                 hours: Specifier::new(0, 23, SpecifierKind::All),
-                weekdays: Specifier::new(Weekday::Wednesday(), Weekday::Sunday(), SpecifierKind::All),
+                weekdays: Specifier::new(
+                    Weekday::Wednesday(),
+                    Weekday::Sunday(),
+                    SpecifierKind::All,
+                ),
                 monthdays: Specifier::new(0, 31, SpecifierKind::All),
                 weeks: Specifier::new(0, 52, SpecifierKind::All),
                 months: Specifier::new(Month::January(), Month::December(), SpecifierKind::All),
@@ -554,8 +576,10 @@ mod interval_tests {
 
             assert!(interval.validate().is_err());
 
-            interval.weekdays = Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All);
-            interval.months = Specifier::new(Month::January(), Month::October(), SpecifierKind::All);
+            interval.weekdays =
+                Specifier::new(Weekday::Monday(), Weekday::Sunday(), SpecifierKind::All);
+            interval.months =
+                Specifier::new(Month::January(), Month::October(), SpecifierKind::All);
 
             assert!(interval.validate().is_err());
 
