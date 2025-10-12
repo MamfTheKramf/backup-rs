@@ -1,16 +1,15 @@
 //! Contains function for restoring a backup.
 
-use std::{fs::{self, File}, path::PathBuf, io};
+use std::{collections::HashMap, fs::{self, File}, io, path::PathBuf};
 
 use chrono::NaiveDateTime;
 use config::profile_config::ProfileConfig;
 use log::{error, info, warn, debug};
+use uuid::Uuid;
 use zip::ZipArchive;
 
 use crate::{
-    cli_args::Args,
-    common::is_target_dir_available,
-    dialog::{retry_dialog, DialogResult, RETRY}, 
+    cli_args::Args, common::is_target_dir_available, consts::{FILE_RECORD_NAME, PROFILE_CONF_NAME}, dialog::{retry_dialog, DialogResult, RETRY} 
 };
 
 /// Restores the files from the latest backup of the provided [ProfileConfig] that is older than the given `timestamp`.
@@ -23,7 +22,7 @@ pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, _args: 
     }
 
     let best_backup = find_backup_archive(profile_config, timestamp);
-    println!("Found best: {:?}", best_backup);
+    debug!("Found best: {:?}", best_backup);
     if best_backup.is_none() {
         return;
     }
@@ -126,6 +125,20 @@ fn restore_from_backup(backup_file: PathBuf) {
             return;
         }
     };
+    let file_record = match zip.by_name(FILE_RECORD_NAME) {
+        Ok(file) => file,
+        Err(e) => {
+            error!("Couldn't find FileRecord bacaus {:?}", e);
+            return;
+        }
+    };
+    let file_record: HashMap<Uuid, String> = match serde_json::from_reader(file_record) {
+        Ok(res) => res,
+        Err(e) => {
+            error!("Couldn't parse FileRecord: {:?}", e);
+            return;
+        }
+    };
 
     for i in 0..zip.len() {
         let mut file = match zip.by_index(i) {
@@ -135,7 +148,24 @@ fn restore_from_backup(backup_file: PathBuf) {
                 return;
             }
         };
-        let filepath = PathBuf::from(file.name());
+        if file.name() == PROFILE_CONF_NAME || file.name() == FILE_RECORD_NAME {
+            continue;
+        }
+
+        let id = match Uuid::parse_str(file.name()) {
+            Ok(uuid) => uuid,
+            Err(e) => {
+                error!("Couldn't parse file id {} as uuid: {:?}", file.name(), e);
+                return;
+            }
+        };
+        let filepath = match file_record.get(&id).and_then(|path| Some(PathBuf::from(path))) {
+            Some(path) => path,
+            None => {
+                error!("Id {} not found in FileRecord. Couldn't map to file path", id);
+                return;
+            }
+        };
 
         if let Some(p) = filepath.parent() {
             if !p.exists() {
@@ -145,6 +175,7 @@ fn restore_from_backup(backup_file: PathBuf) {
                 }
             }
         }
+        info!("Restore file {:?}", filepath);
         let mut outfile = match fs::File::create(&filepath) {
             Ok(outfile) => outfile,
             Err(e) => {
