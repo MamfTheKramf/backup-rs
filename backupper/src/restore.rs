@@ -1,15 +1,24 @@
 //! Contains function for restoring a backup.
 
-use std::{collections::HashMap, fs::{self, File}, io, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io,
+    path::PathBuf,
+};
 
 use chrono::NaiveDateTime;
 use config::profile_config::ProfileConfig;
-use log::{error, info, warn, debug};
+use log::{debug, error, info};
 use uuid::Uuid;
-use zip::ZipArchive;
+use zip::{read::ZipFile, ZipArchive};
 
 use crate::{
-    cli_args::Args, common::is_target_dir_available, consts::{FILE_RECORD_NAME, PROFILE_CONF_NAME}, dialog::{retry_dialog, DialogResult, RETRY} 
+    cli_args::Args,
+    common::is_target_dir_available,
+    consts::{FILE_RECORD_NAME, MANIFEST_NAME, PROFILE_CONF_NAME, RESERVED_FILENAMES},
+    dialog::{retry_dialog, DialogResult, RETRY},
+    manifest::Manifest,
 };
 
 /// Restores the files from the latest backup of the provided [ProfileConfig] that is older than the given `timestamp`.
@@ -17,7 +26,10 @@ use crate::{
 /// If there is no such backup, nothing happens.
 pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, _args: &Args) {
     if !available_target_dir_dialog(profile_config) {
-        info!("Target dir {:?} wasn't available and canceled.", profile_config.target_dir);
+        info!(
+            "Target dir {:?} wasn't available and canceled.",
+            profile_config.target_dir
+        );
         return;
     }
 
@@ -32,7 +44,7 @@ pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, _args: 
 }
 
 /// Opens retry dialog to attach external drive if the `profile_config`s target directory is not available.
-/// 
+///
 /// # Returns
 /// `true` if the restoring shall proceed.
 /// `false` if cancel was selected.
@@ -51,9 +63,12 @@ fn available_target_dir_dialog(profile_config: &ProfileConfig) -> bool {
 }
 
 /// Finds the latest backup file in the target dir that is older than the provided timestamp.
-/// 
+///
 /// Returns [None] if no such backup file was found. This function doesn't go through the target dir recursively.
-fn find_backup_archive(profile_config: &ProfileConfig, timestamp: NaiveDateTime) -> Option<PathBuf> {
+fn find_backup_archive(
+    profile_config: &ProfileConfig,
+    timestamp: NaiveDateTime,
+) -> Option<PathBuf> {
     let entries = match fs::read_dir(&profile_config.target_dir) {
         Ok(entries) => entries,
         Err(err) => {
@@ -61,6 +76,12 @@ fn find_backup_archive(profile_config: &ProfileConfig, timestamp: NaiveDateTime)
             return None;
         }
     };
+
+    let timestamp = timestamp
+        .and_local_timezone(chrono::Local)
+        .earliest()
+        .map(|timestamp| timestamp.timestamp())
+        .unwrap_or(chrono::Local::now().timestamp());
 
     let mut best_backup = None;
 
@@ -76,31 +97,47 @@ fn find_backup_archive(profile_config: &ProfileConfig, timestamp: NaiveDateTime)
             continue;
         }
 
-        // Extract the creation date from the filename; one could use the creation date of the file, but this way we can be really sure
-        let creation_date = path
-            .file_name()
-            .map(|name| name.to_str().unwrap_or("")) // convert OsStr into normal str
-            .map(|name| name.strip_suffix(".zip").unwrap_or(""))
-            .map(|name| {
-                name.strip_prefix(&(profile_config.get_uuid().as_hyphenated().to_string() + "_"))
-                    .unwrap_or("")
-            })
-            .unwrap_or("");
-        // actually parse str into NaiveDateTime
-        let creation_date = match NaiveDateTime::parse_from_str(creation_date, "%Y-%m-%d_%H-%M") {
-            Ok(date_time) => date_time,
-            Err(e) => {
-                warn!("Couldn't parse date {:?} because {:?}", creation_date, e);
-                continue;
-            }
+        let file = match File::open(&path) {
+            Ok(file) => file,
+            _ => continue,
+        };
+        let mut zip = match ZipArchive::new(file) {
+            Ok(archive) => archive,
+            _ => continue,
         };
 
-        // update current best
-        if creation_date <= timestamp
-            && best_backup.as_ref().map_or(true, |&(curr_best_date, _)| curr_best_date < creation_date)
-        {   
-            debug!("Update best_backup to {:?}", creation_date);
-            best_backup = Some((creation_date, path));
+        let backup_uuid = match zip
+            .by_name(PROFILE_CONF_NAME)
+            .or(Err(String::from("ProfileConfig entry not found")))
+            .and_then(|zip_file| {
+                serde_json::from_reader::<ZipFile<'_>, ProfileConfig>(zip_file)
+                    .map_err(|e| format!("Couldn't parse ProfileConfig in backup: {:?}", e))
+            }) {
+            Ok(conf) => conf.get_uuid().clone(),
+            Err(_) => continue,
+        };
+        if &backup_uuid != profile_config.get_uuid() {
+            continue;
+        }
+
+        let manifest = match zip.by_name(MANIFEST_NAME).or(Err(())).and_then(|zip_file| {
+            serde_json::from_reader::<ZipFile<'_>, Manifest>(zip_file).or(Err(()))
+        }) {
+            Ok(manifest) => manifest,
+            _ => continue,
+        };
+        if !manifest.matches() {
+            continue;
+        }
+
+        if manifest.created <= timestamp
+            && manifest.created
+                > best_backup
+                    .as_ref()
+                    .map(|&(current_best_ts, _)| current_best_ts)
+                    .unwrap_or(i64::MIN)
+        {
+            best_backup = Some((manifest.created, path));
         }
     }
 
@@ -148,7 +185,7 @@ fn restore_from_backup(backup_file: PathBuf) {
                 return;
             }
         };
-        if file.name() == PROFILE_CONF_NAME || file.name() == FILE_RECORD_NAME {
+        if RESERVED_FILENAMES.contains(&file.name()) {
             continue;
         }
 
@@ -159,10 +196,16 @@ fn restore_from_backup(backup_file: PathBuf) {
                 return;
             }
         };
-        let filepath = match file_record.get(&id).and_then(|path| Some(PathBuf::from(path))) {
+        let filepath = match file_record
+            .get(&id)
+            .and_then(|path| Some(PathBuf::from(path)))
+        {
             Some(path) => path,
             None => {
-                error!("Id {} not found in FileRecord. Couldn't map to file path", id);
+                error!(
+                    "Id {} not found in FileRecord. Couldn't map to file path",
+                    id
+                );
                 return;
             }
         };
@@ -170,7 +213,11 @@ fn restore_from_backup(backup_file: PathBuf) {
         if let Some(p) = filepath.parent() {
             if !p.exists() {
                 if let Err(e) = fs::create_dir_all(p) {
-                    error!("Couldn't create dir {:?} because {:?}", filepath.parent(), e);
+                    error!(
+                        "Couldn't create dir {:?} because {:?}",
+                        filepath.parent(),
+                        e
+                    );
                     return;
                 }
             }
