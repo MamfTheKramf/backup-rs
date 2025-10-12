@@ -9,9 +9,7 @@ pub struct Error {
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    NotFound,
     Internal,
-    Unkown,
 }
 
 impl Display for Error {

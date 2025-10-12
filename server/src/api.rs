@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use config::interval::IntervalBuilder;
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
 use rocket::http::Status;
-use rocket::serde::{json::Json, Serialize};
+use rocket::serde::json::Json;
 use rocket::tokio::fs;
 use rocket::State;
 use uuid::Uuid;
@@ -70,13 +70,6 @@ async fn read_profile_configs(path: &PathBuf) -> Result<Vec<ProfileConfig>, Erro
     }
 
     Ok(profile_configs)
-}
-
-/// Contains protobuf serializes [ProfileConfig]s
-#[derive(Debug, Serialize)]
-#[serde(crate = "rocket::serde")]
-pub struct ProfileConfigs {
-    pub configs: Vec<Vec<u8>>,
 }
 
 /// Returns a vector of the [ProfileConfig]s that are found inside te directory specified in the [GeneralConfig]
