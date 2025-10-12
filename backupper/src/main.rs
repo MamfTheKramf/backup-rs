@@ -8,6 +8,7 @@ mod config;
 mod dialog;
 mod scheduler;
 mod consts;
+mod manifest;
 
 use std::{process::exit, path::PathBuf};
 
