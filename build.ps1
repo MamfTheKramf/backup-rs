@@ -2,7 +2,7 @@
 
 param(
     [Parameter(HelpMessage = "Name of output archive")]
-    [string]$OutFile = $PWD.Path + '\backupper.zip',
+    [string]$OutFile = "$($PWD.Path)\backupper_$(Get-Date -Format FileDateTimeUniversal).zip",
     [switch]$KeepTmpDir,
     [switch]$SkipNpmInstall,
     [switch]$SkipBuildFrontend,
