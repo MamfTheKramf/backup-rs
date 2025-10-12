@@ -5,6 +5,7 @@
 
 use chrono::NaiveDateTime;
 use uuid::Uuid;
+use log::info;
 
 #[cfg(target_family = "windows")]
 mod windows;
@@ -14,12 +15,14 @@ mod windows;
 /// # Errors
 /// Returns an [Err] describing what went wrong if there was an issue.
 pub fn schedule_backup(uuid: Uuid, date_time: NaiveDateTime) -> Result<(), String> {
+    info!("Schedule backup call for {} at {}", uuid, date_time);
     #[cfg(target_family = "windows")]
     windows::schedule_backup(uuid, date_time)
 }
 
 /// Unschedules backups for the profile with the given [Uuid]
 pub fn unschedule_backup(uuid: Uuid) -> Result<(), String> {
+    info!("Unschedule backup call for {}", uuid);
     #[cfg(target_family = "windows")]
     windows::unschedule_backup(uuid)
 }
