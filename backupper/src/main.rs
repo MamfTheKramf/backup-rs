@@ -7,6 +7,7 @@ mod cli_args;
 mod config;
 mod dialog;
 mod scheduler;
+mod consts;
 
 use std::{process::exit, path::PathBuf};
 

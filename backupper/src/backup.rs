@@ -14,9 +14,7 @@ use log::{error, warn, info, debug};
 use zip::{write::FileOptions, ZipWriter};
 
 use crate::{
-    cli_args::Args,
-    dialog::{retry_dialog, DialogResult, RETRY},
-    scheduler::schedule_backup, common::is_target_dir_available,
+    cli_args::Args, common::is_target_dir_available, consts::PROFILE_CONF_NAME, dialog::{retry_dialog, DialogResult, RETRY}, scheduler::schedule_backup
 };
 
 /// Handles the provided [ProfileConfig].
@@ -92,11 +90,16 @@ fn is_scheduled(profile_config: &mut ProfileConfig, forced: bool) -> bool {
 
 /// Performs actual backup.
 ///
-/// 1. If the target directory for the zip archive is accesible and opens retry dialog boxes until it is accesibly, or the backup is cancelled.
+/// 1. Check if the target directory for the zip archive is accesible and opens retry dialog boxes until it is accesibly, or the backup is cancelled.
 /// 2. Creates a file for the zip archive.
-/// 3. Recursively goes through directories to include and adds each file, not matched by the excluded files to the archive
-/// 4. Goes through the files to include and adds each file, not matched by the included dirs to the archive
-/// 5. Stores zip an exits
+/// 3. Add the current profile config to the zip archive to later fully recover
+/// 4. Recursively goes through directories to include and add each file not matched by the excluded files to the archive
+/// 5. Goes through the files to include and adds each file, not matched by the included dirs to the archive
+/// 7. Writes file record to the archive
+/// 6. Stores zip an exits
+/// 
+/// Files are added by giving them a unique name. This unique name is then mapped to the original file path and stored within a record
+/// That record is also written to the archive
 fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::Result<(), String> {
     // if target dir isn't available, open dialog
     let mut choice = DialogResult(RETRY);
@@ -132,6 +135,16 @@ fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::R
         Err(err) => return Err(format!("Error creating file {:?}: {:?}", path, err)),
     };
     let mut zip = ZipWriter::new(file);
+
+    // write profile config to archive
+    debug!("Store ProfileConfig");
+    if let Err(err) = zip.start_file(PROFILE_CONF_NAME, FileOptions::default()) {
+        return Err(format!("Couldn't add profile config: {:?}", err));
+    }
+    if let Err(err) = serde_json::to_writer(&mut zip, profile_config) {
+        return Err(format!("Couldn't write profile config to archive: {:?}", err));
+    }
+    debug!("Successfully stored ProfileConfig");
 
     // add all directories
     for dir in &profile_config.dirs_to_include {
