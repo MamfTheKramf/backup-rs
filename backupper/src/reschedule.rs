@@ -10,10 +10,9 @@ use crate::scheduler;
 pub fn reschedule(profile_config: &mut ProfileConfig, general_config: &GeneralConfig) {
     profile_config.update_next_backup();
 
-    if let Err(e) = scheduler::schedule_backup(
-        profile_config.get_uuid().clone(),
-        profile_config.next_backup,
-    ) {
+    if let Err(e) =
+        scheduler::schedule_backup(*profile_config.get_uuid(), profile_config.next_backup)
+    {
         error!("Couldn't schedule next backup: {:?}", e);
         return;
     }

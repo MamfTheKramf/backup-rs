@@ -49,7 +49,7 @@ pub fn delete(
     general_config: &GeneralConfig,
     delete_backups: bool,
 ) {
-    if let Err(e) = unschedule_backup(profile_config.get_uuid().clone()) {
+    if let Err(e) = unschedule_backup(*profile_config.get_uuid()) {
         error!("Couldn't unschedule profile. Got {}", e);
         return;
     }
@@ -58,10 +58,8 @@ pub fn delete(
         if let Err(e) = delete_backup_files(profile_config.get_uuid(), &profile_config.target_dir) {
             error!("Couldn't delete previous backups. Got {}", e);
 
-            if let Err(e) = schedule_backup(
-                profile_config.get_uuid().clone(),
-                profile_config.next_backup,
-            ) {
+            if let Err(e) = schedule_backup(*profile_config.get_uuid(), profile_config.next_backup)
+            {
                 error!("Couldn't reschedule old backup. Got: {}", e);
             }
             return;
@@ -73,10 +71,7 @@ pub fn delete(
 
     if let Err(e) = fs::remove_file(&path) {
         error!("Coudln't delete config file. Got {:#?}", e);
-        if let Err(e) = schedule_backup(
-            profile_config.get_uuid().clone(),
-            profile_config.next_backup,
-        ) {
+        if let Err(e) = schedule_backup(*profile_config.get_uuid(), profile_config.next_backup) {
             error!("Couldn't reschedule old backup. Got: {}", e);
         }
     }

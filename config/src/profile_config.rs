@@ -3,7 +3,7 @@
 use std::{
     fs::{File, OpenOptions},
     io::{BufReader, BufWriter, Error},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use crate::interval::*;
@@ -84,8 +84,8 @@ impl ProfileConfig {
         Ok(config)
     }
 
-    /// Stores configuration to afile named after the own [Uuid] and places it into the directory pointed to by the given [PathBuf].
-    pub fn store(&self, dir_path: &PathBuf) -> Result<(), Error> {
+    /// Stores configuration to afile named after the own [Uuid] and places it into the directory pointed to by the given [Path].
+    pub fn store(&self, dir_path: &Path) -> Result<(), Error> {
         let file_path = Self::dir_uuid_to_file(dir_path, self.uuid);
         let file = OpenOptions::new()
             .write(true)
@@ -139,8 +139,8 @@ impl ProfileConfig {
         self.next_backup = next_scheduled;
     }
 
-    /// Converts a [PathBuf] describing a directory and a [Uuid] into a filename.
-    fn dir_uuid_to_file(dir: &PathBuf, uuid: Uuid) -> PathBuf {
+    /// Converts a [Path] describing a directory and a [Uuid] into a filename.
+    fn dir_uuid_to_file(dir: &Path, uuid: Uuid) -> PathBuf {
         PathBuf::from(format!(
             "{}/{}.json",
             dir.to_str().unwrap_or(""),
@@ -153,15 +153,15 @@ impl ProfileConfig {
     /// Expects that both paths are either relative with respect to the same root or absolute.
     /// Otherwise the result can't be trusted.
     ///
-    /// Also both [PathBuf]s should be canonicalized before being passed into this function.
-    fn is_in_dir(path: &PathBuf, dir: &PathBuf) -> bool {
+    /// Also both [Path]s should be canonicalized before being passed into this function.
+    fn is_in_dir(path: &Path, dir: &Path) -> bool {
         path.starts_with(dir)
     }
 
-    /// Checks if the provided [PathBuf] is matched by the `files_to_exclude` or `dirs_to_exclude`.
+    /// Checks if the provided [Path] is matched by the `files_to_exclude` or `dirs_to_exclude`.
     ///
     /// Since the exlusion paths can be expected to be absolute, the provided `path` should also be absolute. Otherwise the result can't be trusted.
-    pub fn is_excluded(&self, path: &PathBuf) -> bool {
+    pub fn is_excluded(&self, path: &Path) -> bool {
         self.files_to_exclude
             .iter()
             .any(|excluded_file| excluded_file == path)
@@ -171,8 +171,8 @@ impl ProfileConfig {
                 .any(|excluded_dir| Self::is_in_dir(path, excluded_dir))
     }
 
-    /// Checks if the provided [PathBuf] is in any of the `dirs_to_include`.
-    pub fn in_included_dirs(&self, path: &PathBuf) -> bool {
+    /// Checks if the provided [Path] is in any of the `dirs_to_include`.
+    pub fn in_included_dirs(&self, path: &Path) -> bool {
         self.dirs_to_include
             .iter()
             .any(|included_dir| Self::is_in_dir(path, included_dir))

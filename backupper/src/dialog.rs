@@ -16,6 +16,7 @@ pub const RETRY: i32 = 4;
 /// # Parameters
 /// - `title`: Title of the dialog window
 /// - `msg`: Message to be displayed
+///
 /// The parameters don't have to end with a null-character `'\0'`. If needed, they will be added by the function.
 ///
 /// # Returns
@@ -36,6 +37,7 @@ pub fn retry_dialog(title: &str, msg: &str) -> DialogResult {
 /// # Parameters
 /// - `title`: Title of the dialog window
 /// - `msg`: Message to be displayed
+///
 /// The parameters don't have to end with a null-character `'\0'`. If needed, they will be added by the function.
 ///
 /// # Returns

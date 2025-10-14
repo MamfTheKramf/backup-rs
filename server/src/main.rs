@@ -5,7 +5,6 @@ use std::{
 
 use cli_args::{parse_args, Args};
 use config::general_config::GeneralConfig;
-use exitcode;
 use log::info;
 use rocket::fs::FileServer;
 

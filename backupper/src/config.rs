@@ -1,10 +1,15 @@
 //! Contains functions and methods for loading and managing configs.
 
-use std::{ffi::OsStr, fs, io::Error, path::PathBuf};
+use std::{
+    ffi::OsStr,
+    fs,
+    io::Error,
+    path::{Path, PathBuf},
+};
 
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
 
-const GENERAL_CONFIG_PATH: &'static str = "./general_config.json";
+const GENERAL_CONFIG_PATH: &str = "./general_config.json";
 
 /// Loads the general config file.
 /// Either from the provided `path` or from [GENERAL_CONFIG_PATH] if `path` is [None]
@@ -41,7 +46,7 @@ pub fn load_general_config(path: Option<&str>) -> Result<GeneralConfig, String> 
 /// # Retuns
 /// [Ok] if `path` points to a valid directory.
 /// [Err] containing a [String] describing the issue if not
-fn valid_dir_path(path: &PathBuf) -> Result<(), String> {
+fn valid_dir_path(path: &Path) -> Result<(), String> {
     match path.try_exists() {
         Ok(val) => {
             if !val {
@@ -80,11 +85,10 @@ fn matches_specifier<T: ProfileSpecifier>(
     specifier: &T,
 ) -> Option<ProfileConfig> {
     let profile_conf = profile_conf?;
-    let name_match;
-    match specifier.name() {
-        Some(name) => name_match = &profile_conf.name == name,
-        None => name_match = true,
-    }
+    let name_match = match specifier.name() {
+        Some(name) => profile_conf.name == name,
+        None => true,
+    };
     let uuid_match;
     match specifier.uuid() {
         Some(uuid) => {
@@ -121,13 +125,11 @@ pub fn soft_load_profile_configs<T: ProfileSpecifier>(
     let read_dir = fs::read_dir(path);
     if read_dir.is_err() {
         return Err(read_dir
-            .err()
-            .expect("is_err was true, but unwrapping err still failed!")
+            .expect_err("is_err was true, but unwrapping err still failed!")
             .to_string());
     }
 
     Ok(read_dir
-        .ok()
         .expect("This must be an ok!")
         .filter_map(|entry| {
             // filter out bad entries or the ones that are no JSONs
@@ -163,13 +165,11 @@ pub fn hard_load_profile_configs<T: ProfileSpecifier>(
     let read_dir = fs::read_dir(path);
     if read_dir.is_err() {
         return Err(read_dir
-            .err()
-            .expect("is_err was true, but unwrapping err still failed!")
+            .expect_err("is_err was true, but unwrapping err still failed!")
             .to_string());
     }
 
     let collect_res: Result<Vec<ProfileConfig>, Error> = read_dir
-        .ok()
         .expect("This must be an ok!")
         .filter_map(|entry| {
             // filter out bad entries or the ones that are no JSONs
@@ -266,11 +266,11 @@ mod config_tests {
 
     impl ProfileSpecifier for MockProfileSpecifier {
         fn name(&self) -> Option<&str> {
-            self.name.as_ref().map(|name| name.as_str())
+            self.name.as_deref()
         }
 
         fn uuid(&self) -> Option<&str> {
-            self.uuid.as_ref().map(|uuid| uuid.as_str())
+            self.uuid.as_deref()
         }
     }
 

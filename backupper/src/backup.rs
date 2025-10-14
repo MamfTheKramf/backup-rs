@@ -50,10 +50,7 @@ pub fn handle_profile(
         );
     }
 
-    if let Err(msg) = schedule_backup(
-        profile_config.get_uuid().clone(),
-        profile_config.next_backup,
-    ) {
+    if let Err(msg) = schedule_backup(*profile_config.get_uuid(), profile_config.next_backup) {
         error!("Couldn't set up next backup.\nGot error: {:?}", msg);
     }
 }
@@ -315,7 +312,7 @@ fn write_to_zip(
     debug!("Store {:?} with id {}", path, id);
 
     let name = String::from(path.to_str().unwrap_or(""));
-    file_record.insert(id.clone(), name);
+    file_record.insert(id, name);
     if let Err(err) = zip.start_file(id, FileOptions::default()) {
         return Err(format!(
             "Couldn't start file {:?} because of {:?}",
@@ -340,7 +337,7 @@ fn write_to_zip(
             break;
         }
 
-        if let Err(err) = zip.write_all(&mut buf[..read_bytes]) {
+        if let Err(err) = zip.write_all(&buf[..read_bytes]) {
             return Err(format!(
                 "Couldn't write {:?} to archive because of {:?}",
                 path, err
@@ -382,7 +379,7 @@ mod backup_tests {
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
             let first_value =
                 NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
-            profile_config.next_backup = first_value.clone();
+            profile_config.next_backup = first_value;
 
             let actual = is_scheduled(&mut profile_config, true);
             assert!(actual);
@@ -395,7 +392,7 @@ mod backup_tests {
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
             let first_value =
                 NaiveDateTime::parse_from_str("2000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
-            profile_config.next_backup = first_value.clone();
+            profile_config.next_backup = first_value;
 
             let actual = is_scheduled(&mut profile_config, true);
             assert!(actual);
@@ -408,7 +405,7 @@ mod backup_tests {
                 dummy_profile_config(IntervalBuilder::default().build().unwrap());
             let first_value =
                 NaiveDateTime::parse_from_str("3000-12-31 23:59", "%Y-%m-%d %H:%M").unwrap();
-            profile_config.next_backup = first_value.clone();
+            profile_config.next_backup = first_value;
 
             let actual = is_scheduled(&mut profile_config, false);
             assert!(!actual);
@@ -454,7 +451,7 @@ mod backup_tests {
                 .unwrap()
                 .with_hour(0)
                 .unwrap();
-            profile_config.next_backup = morning.clone();
+            profile_config.next_backup = morning;
             let actual = is_scheduled(&mut profile_config, false);
             assert!(actual);
             assert_ne!(profile_config.next_backup, morning);
@@ -480,7 +477,7 @@ mod backup_tests {
                 .unwrap()
                 .with_minute(0)
                 .unwrap();
-            profile_config.next_backup = five_hours_ago.clone();
+            profile_config.next_backup = five_hours_ago;
             let actual = is_scheduled(&mut profile_config, false);
             assert!(actual);
             assert_ne!(profile_config.next_backup, five_hours_ago);
@@ -501,7 +498,7 @@ mod backup_tests {
                 .checked_sub_signed(Duration::hours(5))
                 .unwrap();
 
-            profile_config.next_backup = first_value.clone();
+            profile_config.next_backup = first_value;
             let actual = is_scheduled(&mut profile_config, false);
             assert!(actual);
             assert_ne!(profile_config.next_backup, first_value);
@@ -524,7 +521,7 @@ mod backup_tests {
 
             let feb_29th_2004 =
                 NaiveDateTime::parse_from_str("2004-02-29 00:00", "%Y-%m-%d %H:%M").unwrap();
-            profile_config.next_backup = feb_29th_2004.clone();
+            profile_config.next_backup = feb_29th_2004;
 
             let actual = is_scheduled(&mut profile_config, false);
             assert!(actual);
@@ -548,7 +545,7 @@ mod backup_tests {
 
             let apr_1st_2004 =
                 NaiveDateTime::parse_from_str("2004-03-1 00:00", "%Y-%m-%d %H:%M").unwrap();
-            profile_config.next_backup = apr_1st_2004.clone();
+            profile_config.next_backup = apr_1st_2004;
 
             let actual = is_scheduled(&mut profile_config, false);
             assert!(!actual);

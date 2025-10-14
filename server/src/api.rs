@@ -1,5 +1,5 @@
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use config::interval::IntervalBuilder;
 use config::{general_config::GeneralConfig, profile_config::ProfileConfig};
@@ -25,30 +25,30 @@ pub async fn get_profile_config_dir(general_config: &State<GeneralConfig>) -> (S
 
 /// Loads all the profile configs from the provided directory and returns them
 async fn read_profile_configs(path: &PathBuf) -> Result<Vec<ProfileConfig>, Error> {
-    let mut dir = fs::read_dir(path).await.or_else(|e| {
+    let mut dir = fs::read_dir(path).await.map_err(|e| {
         log::error!("Couldn't read profile-configs dir because {:#?}", e);
-        Err(Error {
+        Error {
             kind: ErrorKind::Internal,
             msg: String::from("Couldn't open directory with profile configs"),
             cause: Some(Box::new(e)),
-        })
+        }
     })?;
 
     let mut profile_configs = vec![];
 
     // go through each entry, check that it's a JSON and try to desrialize it
-    while let Some(entry) = dir.next_entry().await.or_else(|e| {
+    while let Some(entry) = dir.next_entry().await.map_err(|e| {
         log::error!("Couldn't get netx dir entry because {:#?}", e);
-        Err(Error {
+        Error {
             kind: ErrorKind::Internal,
             msg: String::from("Couldn't read directory entry"),
             cause: Some(Box::new(e)),
-        })
+        }
     })? {
         let path = entry.path();
 
         // check that it's a JSON
-        if &path.extension().unwrap_or(OsStr::new("")) != &"json" {
+        if path.extension().unwrap_or(OsStr::new("")) != "json" {
             log::debug!("Skip entry {:?} because it's not a JSON file", &path);
             continue;
         }
@@ -81,7 +81,7 @@ pub async fn get_profile_configs(
 
     let profile_configs = read_profile_configs(dir)
         .await
-        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+        .map_err(|e| (Status::InternalServerError, e.msg))?;
 
     Ok((Status::Ok, Json(profile_configs)))
 }
@@ -96,7 +96,7 @@ pub async fn get_profile_config_by_name(
 
     let profile_configs = read_profile_configs(dir)
         .await
-        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+        .map_err(|e| (Status::InternalServerError, e.msg))?;
 
     let target_config = profile_configs
         .into_iter()
@@ -117,10 +117,7 @@ enum Identifyier {
 }
 
 /// Tries to delete the JSON file of that profile config
-async fn delete_profile_config(
-    backupper_path: &PathBuf,
-    id: Identifyier,
-) -> Result<String, String> {
+async fn delete_profile_config(backupper_path: &Path, id: Identifyier) -> Result<String, String> {
     let mut output = rocket::tokio::process::Command::new(backupper_path.as_os_str());
 
     match &id {
@@ -175,19 +172,19 @@ pub async fn get_profile_config_by_uuid(
     general_config: &State<GeneralConfig>,
     uuid: String,
 ) -> Result<(Status, Json<ProfileConfig>), APIError> {
-    let uuid = Uuid::parse_str(&uuid).or_else(|e| {
+    let uuid = Uuid::parse_str(&uuid).map_err(|e| {
         log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
-        Err((
+        (
             Status::BadRequest,
             format!("{:?} is not a valid uuid", uuid),
-        ))
+        )
     })?;
 
     let dir = &general_config.profile_configs;
 
     let profile_configs = read_profile_configs(dir)
         .await
-        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+        .map_err(|e| (Status::InternalServerError, e.msg))?;
 
     let target_config = profile_configs
         .into_iter()
@@ -207,12 +204,12 @@ pub async fn delete_profile_config_by_uuid(
     backupper_path: &State<PathBuf>,
     uuid: String,
 ) -> Result<Status, APIError> {
-    let uuid = Uuid::parse_str(&uuid).or_else(|e| {
+    let uuid = Uuid::parse_str(&uuid).map_err(|e| {
         log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
-        Err((
+        (
             Status::BadRequest,
             format!("{:?} is not a valid uuid", uuid),
-        ))
+        )
     })?;
 
     log::info!("Delete ProfileConfig {:?}", uuid);
@@ -244,7 +241,7 @@ pub async fn create_blank_profile_config(
 
     let profile_configs = read_profile_configs(dir)
         .await
-        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+        .map_err(|e| (Status::InternalServerError, e.msg))?;
 
     let name_already_taken = profile_configs
         .iter()
@@ -259,12 +256,12 @@ pub async fn create_blank_profile_config(
     let none_interval = IntervalBuilder::default()
         .minutes(config::interval::SpecifierKind::None)
         .build()
-        .or_else(|e| {
+        .map_err(|e| {
             log::error!("Couldn't build none_interval because {:#?}", e);
-            Err((
+            (
                 Status::InternalServerError,
                 String::from("Unexpected Error"),
-            ))
+            )
         })?;
     let profile_config = ProfileConfig::new(
         name,
@@ -276,12 +273,12 @@ pub async fn create_blank_profile_config(
         none_interval,
     );
 
-    profile_config.store(dir).or_else(|e| {
+    profile_config.store(dir).map_err(|e| {
         log::error!("Couldn't store new ProfileConfig because {:#?}", e);
-        Err((
+        (
             Status::InternalServerError,
             String::from("Unexpected Error"),
-        ))
+        )
     })?;
 
     Ok((Status::Created, Json(profile_config)))
@@ -295,12 +292,12 @@ pub async fn update_profile_config(
     uuid: String,
     new_config: Json<ProfileConfig>,
 ) -> Result<(Status, Json<ProfileConfig>), APIError> {
-    let uuid = Uuid::parse_str(&uuid).or_else(|e| {
+    let uuid = Uuid::parse_str(&uuid).map_err(|e| {
         log::warn!("Couldn't parse uuid {:?} because {:#?}", uuid, e);
-        Err((
+        (
             Status::BadRequest,
             format!("{:?} is not a valid uuid", uuid),
-        ))
+        )
     })?;
 
     if let Err(msg) = new_config.interval.validate() {
@@ -312,7 +309,7 @@ pub async fn update_profile_config(
 
     let profile_configs = read_profile_configs(dir)
         .await
-        .or_else(|e| Err((Status::InternalServerError, e.msg)))?;
+        .map_err(|e| (Status::InternalServerError, e.msg))?;
 
     let mut new_config = new_config.0;
 
@@ -341,16 +338,16 @@ pub async fn update_profile_config(
     new_config.next_backup = target_config.next_backup;
 
     // we have to store first; otherwise the reschedule would just take the old interval
-    new_config.store(dir).or_else(|e| {
+    new_config.store(dir).map_err(|e| {
         log::error!(
             "Couldn't store ProfileConfig {:?} because {:#?}",
             new_config.get_uuid(),
             e
         );
-        Err((
+        (
             Status::InternalServerError,
             String::from("Unexpected Error"),
-        ))
+        )
     })?;
 
     if new_config.interval != target_config.interval {

@@ -113,7 +113,7 @@ fn find_backup_archive(
                 serde_json::from_reader::<ZipFile<'_>, ProfileConfig>(zip_file)
                     .map_err(|e| format!("Couldn't parse ProfileConfig in backup: {:?}", e))
             }) {
-            Ok(conf) => conf.get_uuid().clone(),
+            Ok(conf) => *conf.get_uuid(),
             Err(_) => continue,
         };
         if &backup_uuid != profile_config.get_uuid() {
@@ -141,7 +141,7 @@ fn find_backup_archive(
         }
     }
 
-    best_backup.and_then(|(_, path)| Some(path))
+    best_backup.map(|(_, path)| path)
 }
 
 /// Restores each file in the given backup.
@@ -196,11 +196,8 @@ fn restore_from_backup(backup_file: PathBuf) {
                 return;
             }
         };
-        let filepath = match file_record
-            .get(&id)
-            .and_then(|path| Some(PathBuf::from(path)))
-        {
-            Some(path) => path,
+        let filepath = match file_record.get(&id) {
+            Some(path) => PathBuf::from(path),
             None => {
                 error!(
                     "Id {} not found in FileRecord. Couldn't map to file path",

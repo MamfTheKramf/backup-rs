@@ -14,7 +14,6 @@ use std::{path::PathBuf, process::exit};
 
 use backup::handle_profile;
 use dialog::info_dialog;
-use exitcode;
 use log::{error, info};
 use reschedule::reschedule;
 use restore::restore;
@@ -33,10 +32,7 @@ fn init_logger(path: &PathBuf) {
 }
 
 fn main() {
-    let orig_path = match std::env::current_dir() {
-        Ok(path) => Some(path),
-        Err(_) => None,
-    };
+    let orig_path = std::env::current_dir().ok();
     if let Ok(path) = std::env::current_exe() {
         if let Some(parent) = path.parent() {
             if let Err(err) = std::env::set_current_dir(parent) {

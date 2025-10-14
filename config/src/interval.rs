@@ -317,12 +317,12 @@ impl Interval {
 
     /// Checks if any of the specifiers are [SpecifierKind::None]
     pub fn has_none_specifier(&self) -> bool {
-        return self.minutes.kind() == &SpecifierKind::None
+        self.minutes.kind() == &SpecifierKind::None
             || self.hours.kind() == &SpecifierKind::None
             || self.weekdays.kind() == &SpecifierKind::None
             || self.monthdays.kind() == &SpecifierKind::None
             || self.weeks.kind() == &SpecifierKind::None
-            || self.months.kind() == &SpecifierKind::None;
+            || self.months.kind() == &SpecifierKind::None
     }
 
     /// Returns the next matching time of day after the given time, if one exists.
@@ -391,7 +391,7 @@ impl Interval {
             self.hours.cyclic_next(time.hour())?
         };
 
-        return NaiveTime::from_hms_opt(next_hour, next_minute, 0);
+        NaiveTime::from_hms_opt(next_hour, next_minute, 0)
     }
 
     /// Tries to find the next matching [NaiveDateTime] after the provided `datetime`.

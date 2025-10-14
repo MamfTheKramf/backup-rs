@@ -8,9 +8,9 @@ pub enum DateTimeMatch {
     DateNotMatched,
 }
 
-impl Into<bool> for DateTimeMatch {
-    fn into(self) -> bool {
-        self == DateTimeMatch::Ok
+impl From<DateTimeMatch> for bool {
+    fn from(val: DateTimeMatch) -> Self {
+        val == DateTimeMatch::Ok
     }
 }
 

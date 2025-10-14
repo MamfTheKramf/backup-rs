@@ -85,11 +85,11 @@ fn valid_time_format(s: &str) -> Result<NaiveDateTime, String> {
 
 impl ProfileSpecifier for Args {
     fn name(&self) -> Option<&str> {
-        self.name.as_ref().map(|name| name.as_str())
+        self.name.as_deref()
     }
 
     fn uuid(&self) -> Option<&str> {
-        self.uuid.as_ref().map(|uuid| uuid.as_str())
+        self.uuid.as_deref()
     }
 }
 

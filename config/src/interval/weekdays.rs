@@ -86,9 +86,9 @@ impl Weekday {
     }
 }
 
-impl Into<u32> for Weekday {
-    fn into(self) -> u32 {
-        self.day as u32
+impl From<Weekday> for u32 {
+    fn from(val: Weekday) -> Self {
+        val.day as u32
     }
 }
 

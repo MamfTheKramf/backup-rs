@@ -81,9 +81,9 @@ impl Month {
     }
 }
 
-impl Into<u32> for Month {
-    fn into(self) -> u32 {
-        self.month as u32
+impl From<Month> for u32 {
+    fn from(val: Month) -> Self {
+        val.month as u32
     }
 }
 
