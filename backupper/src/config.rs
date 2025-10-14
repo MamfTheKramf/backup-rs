@@ -211,12 +211,20 @@ mod config_tests {
             assert!(valid_dir_path(&path).is_ok());
         }
 
+        #[cfg(target_family = "windows")]
         #[test]
-        fn valid_dir_absolute() {
+        fn valid_dir_absolute_windows() {
             let path = PathBuf::from("C:/");
             assert!(valid_dir_path(&path).is_ok());
 
             let path = PathBuf::from("c:/");
+            assert!(valid_dir_path(&path).is_ok());
+        }
+
+        #[cfg(target_family = "unix")]
+        #[test]
+        fn valid_dir_absolute_unix() {
+            let path = PathBuf::from("/");
             assert!(valid_dir_path(&path).is_ok());
         }
 
