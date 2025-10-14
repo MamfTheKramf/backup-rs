@@ -331,47 +331,49 @@ mod profile_config_tests {
             )
         }
 
+        #[cfg(target_family = "unix")]
         #[test]
-        fn is_in_dir() {
-            let dir = PathBuf::from("/home/hutzi/Documents");
+        fn is_in_dir_unix() {
+            let dir_unix = PathBuf::from("/home/hutzi/Documents");
             let path = PathBuf::from("/home/fuschi/Documents");
-            assert!(!ProfileConfig::is_in_dir(&path, &dir));
+            assert!(!ProfileConfig::is_in_dir(&path, &dir_unix));
 
             let path = PathBuf::from("/etc/passwd");
-            assert!(!ProfileConfig::is_in_dir(&path, &dir));
+            assert!(!ProfileConfig::is_in_dir(&path, &dir_unix));
 
             let path = PathBuf::from("/home/hutzi/Pictures/dog.jpg");
-            assert!(!ProfileConfig::is_in_dir(&path, &dir));
+            assert!(!ProfileConfig::is_in_dir(&path, &dir_unix));
 
             let path = PathBuf::from("/home/hutzi");
-            assert!(!ProfileConfig::is_in_dir(&path, &dir));
+            assert!(!ProfileConfig::is_in_dir(&path, &dir_unix));
 
             let path = PathBuf::from("/home/hutzi/Documents");
-            assert!(ProfileConfig::is_in_dir(&path, &dir));
+            assert!(ProfileConfig::is_in_dir(&path, &dir_unix));
 
             let path = PathBuf::from("/home/hutzi/Documents/homework");
-            assert!(ProfileConfig::is_in_dir(&path, &dir));
-
-            let dir = PathBuf::from("C:\\users\\fuschi");
-            let path = PathBuf::from("C:\\users");
-            assert!(!ProfileConfig::is_in_dir(&path, &dir));
-
-            let path = PathBuf::from("C:\\users\\fuschi\\Downloads");
-            assert!(ProfileConfig::is_in_dir(&path, &dir));
+            assert!(ProfileConfig::is_in_dir(&path, &dir_unix));
         }
 
+        #[cfg(target_family = "windows")]
         #[test]
-        fn is_excluded() {
+        fn is_in_dir_windows() {
+            // Specifically stuff like `starts_with` of windows paths doesn't work on unix
+            let dir_windows = PathBuf::from("C:\\users\\fuschi");
+            let path = PathBuf::from("C:\\users");
+            assert!(!ProfileConfig::is_in_dir(&path, &dir_windows));
+
+            let path = PathBuf::from("C:\\users\\fuschi\\Downloads");
+            assert!(ProfileConfig::is_in_dir(&path, &dir_windows));
+        }
+
+        #[cfg(target_family = "unix")]
+        #[test]
+        fn is_excluded_unix() {
             let excluded_files = vec![
                 PathBuf::from("/etc/passwd"),
                 PathBuf::from("/home/hutzi/test.txt"),
-                PathBuf::from("C:\\users\\tester\\test.md"),
             ];
-            let excluded_dirs = vec![
-                PathBuf::from("/var"),
-                PathBuf::from("/home/fuschi"),
-                PathBuf::from("C:\\Program Files"),
-            ];
+            let excluded_dirs = vec![PathBuf::from("/var"), PathBuf::from("/home/fuschi")];
 
             let config = exclusion_config(excluded_files, excluded_dirs);
 
@@ -384,16 +386,25 @@ mod profile_config_tests {
             let path = PathBuf::from("/etc/passwd");
             assert!(config.is_excluded(&path));
 
-            let path = PathBuf::from("C:\\users\\tester\\test.txt");
-            assert!(!config.is_excluded(&path));
-
-            let path = PathBuf::from("C:\\users\\tester\\test.md");
-            assert!(config.is_excluded(&path));
-
             let path = PathBuf::from("/home/hutzi");
             assert!(!config.is_excluded(&path));
 
             let path = PathBuf::from("/var/tester");
+            assert!(config.is_excluded(&path));
+        }
+
+        #[cfg(target_family = "windows")]
+        #[test]
+        fn is_excluded_windows() {
+            let excluded_files = vec![PathBuf::from("C:\\users\\tester\\test.md")];
+            let excluded_dirs = vec![PathBuf::from("C:\\Program Files")];
+
+            let config = exclusion_config(excluded_files, excluded_dirs);
+
+            let path = PathBuf::from("C:\\users\\tester\\test.txt");
+            assert!(!config.is_excluded(&path));
+
+            let path = PathBuf::from("C:\\users\\tester\\test.md");
             assert!(config.is_excluded(&path));
 
             let path = PathBuf::from("/home/fuschi/Documents/1/2/3/test.abc");
