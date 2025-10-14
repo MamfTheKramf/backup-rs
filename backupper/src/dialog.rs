@@ -22,7 +22,13 @@ pub const RETRY: i32 = 4;
 /// [DialogResult] depending on what the user clicked on.
 pub fn retry_dialog(title: &str, msg: &str) -> DialogResult {
     #[cfg(target_family = "windows")]
-    windows::retry_dialog(title, msg)
+    {
+        windows::retry_dialog(title, msg)
+    }
+    #[cfg(target_family = "unix")]
+    {
+        todo!()
+    }
 }
 
 /// Display an info dialog with the given `title` and `msg`.
@@ -36,5 +42,11 @@ pub fn retry_dialog(title: &str, msg: &str) -> DialogResult {
 /// [DialogResult] depending on what the user clicked on.
 pub fn info_dialog(title: &str, msg: &str) -> DialogResult {
     #[cfg(target_family = "windows")]
-    windows::info_dialog(title, msg)
+    {
+        windows::info_dialog(title, msg)
+    }
+    #[cfg(target_family = "unix")]
+    {
+        todo!()
+    }
 }

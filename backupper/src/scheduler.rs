@@ -17,12 +17,24 @@ mod windows;
 pub fn schedule_backup(uuid: Uuid, date_time: NaiveDateTime) -> Result<(), String> {
     info!("Schedule backup call for {} at {}", uuid, date_time);
     #[cfg(target_family = "windows")]
-    windows::schedule_backup(uuid, date_time)
+    {
+        windows::schedule_backup(uuid, date_time)
+    }
+    #[cfg(target_family = "unix")]
+    {
+        todo!()
+    }
 }
 
 /// Unschedules backups for the profile with the given [Uuid]
 pub fn unschedule_backup(uuid: Uuid) -> Result<(), String> {
     info!("Unschedule backup call for {}", uuid);
     #[cfg(target_family = "windows")]
-    windows::unschedule_backup(uuid)
+    {
+        windows::unschedule_backup(uuid)
+    }
+    #[cfg(target_family = "unix")]
+    {
+        todo!()
+    }
 }
