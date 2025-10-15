@@ -19,7 +19,7 @@ use crate::{
     cli_args::Args,
     common::is_target_dir_available,
     consts::{FILE_RECORD_NAME, MANIFEST_NAME, PROFILE_CONF_NAME},
-    dialog::{retry_dialog, DialogResult, RETRY},
+    dialog::{retry_dialog, DialogResult},
     manifest::Manifest,
     scheduler::schedule_backup,
 };
@@ -106,15 +106,15 @@ fn is_scheduled(profile_config: &mut ProfileConfig, forced: bool) -> bool {
 /// That record is also written to the archive
 fn perform_backup(profile_config: &ProfileConfig, args: &Args) -> std::result::Result<(), String> {
     // if target dir isn't available, open dialog
-    let mut choice = DialogResult(RETRY);
+    let mut choice = DialogResult::Retry;
     while !is_target_dir_available(&profile_config.target_dir, true)
-        && choice == DialogResult(RETRY)
+        && choice == DialogResult::Retry
     {
         let msg = format!("Das Verzeichnis {:?} scheint nicht verfügpar zu sein.\nBitte schließe die externe Festplatte an und versuche es erneut.", profile_config.target_dir);
         let title = "Zielfverzeichnis nicht verfügbar.";
         choice = retry_dialog(title, &msg);
     }
-    if choice != DialogResult(RETRY) {
+    if choice != DialogResult::Retry {
         return Err(format!(
             "Directory {:?} isn't available and retry was cancled",
             profile_config.target_dir

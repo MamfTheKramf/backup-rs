@@ -6,6 +6,7 @@ pkgs.mkShell {
   packages = with pkgs; [
     rustup
     nodejs_22
+    zenity
   ];
 
   shellHook = ''
