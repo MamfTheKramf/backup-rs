@@ -52,6 +52,6 @@ pub fn info_dialog(title: &str, msg: &str) -> DialogResult {
     }
     #[cfg(target_family = "unix")]
     {
-        todo!()
+        unix::info_dialog(title, msg)
     }
 }
