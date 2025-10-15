@@ -17,7 +17,7 @@ use crate::{
     cli_args::Args,
     common::is_target_dir_available,
     consts::{FILE_RECORD_NAME, MANIFEST_NAME, PROFILE_CONF_NAME, RESERVED_FILENAMES},
-    dialog::{retry_dialog, DialogResult, RETRY},
+    dialog::{retry_dialog, DialogResult},
     manifest::Manifest,
 };
 
@@ -50,16 +50,16 @@ pub fn restore(profile_config: &ProfileConfig, timestamp: NaiveDateTime, _args: 
 /// `false` if cancel was selected.
 fn available_target_dir_dialog(profile_config: &ProfileConfig) -> bool {
     // make sure, directory is available
-    let mut choice = DialogResult(RETRY);
+    let mut choice = DialogResult::Retry;
     while !is_target_dir_available(&profile_config.target_dir, false)
-        && choice == DialogResult(RETRY)
+        && choice == DialogResult::Retry
     {
         let msg = format!("Das Verzeichnis mit den Backups {:?} scheint nicht verfügpar zu sein.\nBitte schließe die externe Festplatte an und versuche es erneut.", profile_config.target_dir);
         let title = "Backupverzeichnis nicht verfügbar.";
         choice = retry_dialog(title, &msg);
     }
 
-    choice == DialogResult(RETRY)
+    choice == DialogResult::Retry
 }
 
 /// Finds the latest backup file in the target dir that is older than the provided timestamp.

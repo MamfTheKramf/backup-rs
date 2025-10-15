@@ -1,15 +1,18 @@
 //! Functions for opening dialog messages
 #![allow(dead_code)]
 
+#[cfg(unix)]
+mod unix;
 #[cfg(windows)]
 mod windows;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct DialogResult(pub i32);
-
-pub const OK: i32 = 1;
-pub const CANCEL: i32 = 2;
-pub const RETRY: i32 = 4;
+pub enum DialogResult {
+    OK,
+    Cancel,
+    Retry,
+    Unknown,
+}
 
 /// Displays a retry dialog with the given `title` and `msg`.
 ///
@@ -28,7 +31,7 @@ pub fn retry_dialog(title: &str, msg: &str) -> DialogResult {
     }
     #[cfg(target_family = "unix")]
     {
-        todo!()
+        unix::retry_dialog(title, msg)
     }
 }
 
